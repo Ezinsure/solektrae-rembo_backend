@@ -5,13 +5,12 @@ import { asyncHandler } from "../utils/asyncHandle";
 import { ApiError } from "../utils/apiError";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
-const REFRESH_COOKIE_PATH = process.env.REFRESH_COOKIE_PATH || "/";
 
 const refreshCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax" as const,
-  path: REFRESH_COOKIE_PATH,
+  path: "/",
   maxAge:
     Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000,
 };
@@ -32,7 +31,7 @@ export const login = asyncHandler(async (req, res: Response) => {
 export const refresh = asyncHandler(async (req, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (!token) {
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
     throw new ApiError(401, "No refresh token provided");
   }
   try {
@@ -45,7 +44,7 @@ export const refresh = asyncHandler(async (req, res: Response) => {
       .status(200)
       .json({ success: true, data: { accessToken: result.accessToken } });
   } catch (err) {
-    res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
     throw err;
   }
 });
@@ -53,13 +52,13 @@ export const refresh = asyncHandler(async (req, res: Response) => {
 export const logout = asyncHandler(async (req, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
   if (token) await authService.logout(token);
-  res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+  res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
   res.status(204).send();
 });
 
 export const logoutAll = asyncHandler(async (req, res: Response) => {
   await authService.logoutAll(req.user!.sub);
-  res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+  res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
   res.status(204).send();
 });
 

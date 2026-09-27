@@ -16,7 +16,7 @@ import { ChangePasswordDto } from "../../dtos/users/chnagePasswddto";
 const AuthRouter = Router();
 
 AuthRouter.post("/login", authRateLimiter, validateDto(LoginDto), login);
-AuthRouter.post("/refresh", authRateLimiter, refresh);
+AuthRouter.post("/refresh", refresh);
 AuthRouter.post("/logout", logout);
 
 // Requires auth: these act on the currently logged-in user.
