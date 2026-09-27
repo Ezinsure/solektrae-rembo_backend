@@ -57,18 +57,18 @@ export const logout = asyncHandler(async (req, res: Response) => {
 });
 
 export const logoutAll = asyncHandler(async (req, res: Response) => {
-  await authService.logoutAll(req.user!.sub);
+  await authService.logoutAll(req.user!.id);
   res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
   res.status(204).send();
 });
 
 export const me = asyncHandler(async (req, res: Response) => {
-  const user = await userService.findById(req.user!.sub);
+  const user = await userService.findById(req.user!.id);
   res.status(200).json({ success: true, data: user });
 });
 
 export const changeMyPassword = asyncHandler(async (req, res: Response) => {
-  await userService.changeOwnPassword(req.user!.sub, req.body);
+  await userService.changeOwnPassword(req.user!.id, req.body);
   res
     .status(200)
     .json({ success: true, message: "Password updated successfully" });
