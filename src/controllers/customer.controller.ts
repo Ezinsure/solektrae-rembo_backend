@@ -35,7 +35,6 @@ export const updateCustomer = asyncHandler(async (req, res: Response) => {
 });
 
 export const updateCustomerStatus = asyncHandler(async (req, res: Response) => {
-  console.log("req.user:", req.user);
   const customer = await customerService.updateStatus(
     req.params.id as string,
     req.body.status,
