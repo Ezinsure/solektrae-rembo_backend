@@ -56,21 +56,20 @@ export class ServiceService {
     return this.repo.save(service);
   }
 
-  async softDelete(id: string): Promise<void> {
-    await this.findById(id); // 404s if it doesn't exist
+  // async softDelete(id: string): Promise<void> {
+  //   await this.findById(id); // 404s if it doesn't exist
 
-    const inUseCount = await this.customerRepo.count({
-      where: { serviceId: id },
-    });
-    if (inUseCount > 0) {
-      throw new ApiError(
-        409,
-        `Cannot delete: ${inUseCount} customer(s) currently reference this service. Deactivate it instead (PATCH isActive: false) to hide it from new registrations without breaking existing records.`,
-      );
-    }
+  //   const inUseCount = await this.customerRepo.count({
+  //     where: { serviceId: id },
+  //   });
+  //   if (inUseCount > 0) {
+  //     throw new ApiError(
+  //       409,
+  //       `Cannot delete: ${inUseCount} customer(s) currently reference this service. Deactivate it instead (PATCH isActive: false) to hide it from new registrations without breaking existing records.`,
+  //     );
+  //   }
 
-    await this.repo.softDelete(id);
-  }
+  //   await this.repo.softDelete(id);
+  // }
 }
-
 export const serviceService = new ServiceService();

@@ -3,7 +3,7 @@ import crypto from "crypto";
 import { UserRole } from "../entities/User";
 
 export interface AccessTokenPayload {
-  sub: string;
+  id: string;
   email: string;
   role: UserRole;
 }

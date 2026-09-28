@@ -47,7 +47,7 @@ export class AuthService {
     if (!passwordMatches) throw invalidCredentials();
 
     const accessToken = signAccessToken({
-      sub: user.id,
+      id: user.id,
       email: user.email,
       role: user.role,
     });
@@ -116,7 +116,7 @@ export class AuthService {
     );
 
     const accessToken = signAccessToken({
-      sub: user.id,
+      id: user.id,
       email: user.email,
       role: user.role,
     });

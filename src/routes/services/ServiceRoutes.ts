@@ -4,7 +4,6 @@ import {
   getServices,
   getServiceById,
   updateService,
-  deleteService,
 } from "../../controllers/service.controller";
 import { authenticate } from "../../middleware/authMiddleware";
 import { authorize } from "../../middleware/roleMiddleware";
@@ -38,11 +37,11 @@ ServiceRoutes.patch(
   validateDto(UpdateServiceDto),
   updateService,
 );
-ServiceRoutes.delete(
-  "/:id",
-  authenticate,
-  //  authorize(UserRole.ADMIN),
-  deleteService,
-);
+// ServiceRoutes.delete(
+//   "/:id",
+//   authenticate,
+//    authorize(UserRole.ADMIN),
+//   deleteService,
+// );
 
 export default ServiceRoutes;

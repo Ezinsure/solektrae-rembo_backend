@@ -6,8 +6,8 @@ import rateLimit from "express-rate-limit";
 // real user who mistypes a password a couple of times, punishing for a
 // script trying thousands of combinations.
 export const authRateLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 10,
+  windowMs: 30 * 60 * 1000,
+  limit: 15,
   standardHeaders: true,
   legacyHeaders: false,
   message: {

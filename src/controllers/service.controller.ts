@@ -29,7 +29,7 @@ export const updateService = asyncHandler(async (req, res: Response) => {
   res.status(200).json({ success: true, data: service });
 });
 
-export const deleteService = asyncHandler(async (req, res: Response) => {
-  await serviceService.softDelete(req.params.id as any);
-  res.status(204).send();
-});
+// export const deleteService = asyncHandler(async (req, res: Response) => {
+//   await serviceService.softDelete(req.params.id as any);
+//   res.status(204).send();
+// });

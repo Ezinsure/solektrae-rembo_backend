@@ -12,6 +12,7 @@ export enum UserRole {
   HR = "hr",
   DEV = "dev",
   USER = "user",
+  STAFF = "staff",
 }
 
 @Entity("users")

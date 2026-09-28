@@ -9,10 +9,6 @@ import {
   Min,
 } from "class-validator";
 import { CustomerStatus } from "../../entities/Customer";
-
-// Only rule is "not empty" — no format/uniqueness checks, per spec.
-// `service` is now plain free text the customer typed themselves, not a
-// reference to anything — no lookup, no validation beyond non-empty.
 export class CreateCustomerDto {
   @IsString()
   @IsNotEmpty()
@@ -31,32 +27,48 @@ export class CreateCustomerDto {
   service: string;
 
   @IsString()
-  @IsNotEmpty()
-  height: string;
+  @IsOptional()
+  height?: string;
 
   @IsString()
-  @IsNotEmpty()
-  hovName: string;
+  @IsOptional()
+  hovName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  hovNumber: string;
+  @IsOptional()
+  hovNumber?: string;
 
   @IsString()
-  @IsNotEmpty()
-  district: string;
+  @IsOptional()
+  fatherName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  sector: string;
+  @IsOptional()
+  motherName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  cell: string;
+  @IsOptional()
+  spouseName?: string;
 
   @IsString()
-  @IsNotEmpty()
-  village: string;
+  @IsOptional()
+  district?: string;
+
+  @IsString()
+  @IsOptional()
+  sector?: string;
+
+  @IsString()
+  @IsOptional()
+  cell?: string;
+
+  @IsString()
+  @IsOptional()
+  street?: string;
+
+  @IsString()
+  @IsOptional()
+  village?: string;
 }
 
 export class UpdateCustomerDto {
@@ -71,8 +83,11 @@ export class UpdateCustomerDto {
   @IsOptional() @IsString() @IsNotEmpty() sector?: string;
   @IsOptional() @IsString() @IsNotEmpty() cell?: string;
   @IsOptional() @IsString() @IsNotEmpty() village?: string;
+  @IsOptional() @IsString() @IsNotEmpty() street?: string;
+  @IsOptional() @IsString() @IsNotEmpty() motherName?: string;
+  @IsOptional() @IsString() @IsNotEmpty() fatherName?: string;
+  @IsOptional() @IsString() @IsNotEmpty() spouseName?: string;
 }
-
 export class UpdateCustomerStatusDto {
   @IsEnum(CustomerStatus)
   status: CustomerStatus;
@@ -81,7 +96,7 @@ export class UpdateCustomerStatusDto {
 export class CustomerQueryDto {
   @IsOptional()
   @IsString()
-  search?: string; 
+  search?: string;
 
   @IsOptional()
   @IsEnum(CustomerStatus)

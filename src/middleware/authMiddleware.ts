@@ -3,7 +3,6 @@ import { verifyAccessToken } from "../utils/token";
 import { ApiError } from "../utils/apiError";
 import jwt from "jsonwebtoken";
 
-// Expects: Authorization: Bearer <accessToken>
 export const authenticate: RequestHandler = (req, res, next) => {
   const header = req.headers.authorization;
 

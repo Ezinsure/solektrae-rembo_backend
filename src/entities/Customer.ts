@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
   DeleteDateColumn,
 } from "typeorm";
-import { Service } from "./Service";
+import { User } from "./User";
 
 export enum CustomerStatus {
   PENDING = "pending",
@@ -33,26 +33,38 @@ export class Customer {
   @Column({ type: "varchar" })
   service: string;
 
-  @Column({ type: "varchar" })
-  height: string;
+  @Column({ type: "varchar", nullable: true })
+  height: string | null;
 
-  @Column({ type: "varchar" })
-  hovName: string; // head of village name
+  @Column({ type: "varchar", nullable: true })
+  hovName: string | null;
 
-  @Column({ type: "varchar" })
-  hovNumber: string; // head of village phone number
+  @Column({ type: "varchar", nullable: true })
+  hovNumber: string | null;
 
-  @Column({ type: "varchar" })
-  district: string;
+  @Column({ type: "varchar", nullable: true })
+  fatherName: string | null;
 
-  @Column({ type: "varchar" })
-  sector: string;
+  @Column({ type: "varchar", nullable: true })
+  motherName: string | null;
 
-  @Column({ type: "varchar" })
-  cell: string;
+  @Column({ type: "varchar", nullable: true })
+  spouseName: string | null;
 
-  @Column({ type: "varchar" })
-  village: string;
+  @Column({ type: "varchar", nullable: true })
+  district: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  sector: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  cell: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  street: string | null;
+
+  @Column({ type: "varchar", nullable: true })
+  village: string | null;
 
   @Column({
     type: "enum",
@@ -69,4 +81,8 @@ export class Customer {
 
   @DeleteDateColumn({ type: "timestamp", nullable: true })
   deletedAt: Date | null;
+
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: "updatedBy" })
+  updatedBy: User | null;
 }
