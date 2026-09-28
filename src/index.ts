@@ -14,12 +14,14 @@ const app = express();
 const PORT = process.env.PORT || 9000;
 
 app.use(helmet());
+const allowedOrigins = process.env.FRONTEND_URL?.split(",") || [];
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL,
+    origin: allowedOrigins,
     credentials: true,
   }),
 );
+
 app.use(express.json());
 app.use(cookieParser());
 
