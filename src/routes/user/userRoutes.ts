@@ -1,20 +1,4 @@
 import { Router } from "express";
-// import {
-//   createUser,
-//   getUsers,
-//   getUserById,
-//   updateUser,
-//   deleteUser,
-//   restoreUser,
-//   toggleUserActive,
-//   adminResetPassword,
-// } from "../controllers/user.controller";
-// import { authenticate } from "../middlewares/auth.middleware";
-// import { authorize } from "../middlewares/role.middleware";
-// import { validateDto } from "../middlewares/validate.middleware";
-// import { CreateUserDto } from "../dtos/user/create-user.dto";
-// import { UpdateUserDto } from "../dtos/user/update-user.dto";
-// import { AdminResetPasswordDto } from "../dtos/user/admin-reset-password.dto";
 import { UserRole } from "../../entities/User";
 import { validateDto } from "../../middleware/validateDto";
 import { CreateUserDto } from "../../dtos/users/userdto";
