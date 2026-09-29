@@ -4,9 +4,10 @@ const express_1 = require("express");
 const validateDto_1 = require("../../middleware/validateDto");
 const userdto_1 = require("../../dtos/users/userdto");
 const user_controller_1 = require("../../controllers/user.controller");
+const authMiddleware_1 = require("../../middleware/authMiddleware");
 const UserRouter = (0, express_1.Router)();
 // Every route below requires a valid access token.
-// UserRouter.use(authenticate);
+UserRouter.use(authMiddleware_1.authenticate);
 /**
  * Authorization policy for this system (adjust to your actual needs):
  *  - ADMIN: full control — create, read, update, deactivate, delete, restore,
@@ -20,8 +21,7 @@ const UserRouter = (0, express_1.Router)();
 UserRouter.post("/", 
 // authorize(UserRole.ADMIN, UserRole.DEV),
 (0, validateDto_1.validateDto)(userdto_1.CreateUserDto), user_controller_1.createUser);
-UserRouter.get("/", 
-// authenticate,
+UserRouter.get("/", authMiddleware_1.authenticate, 
 // authorize(userRole.ADMIN, userRole.HR),
 user_controller_1.getUsers);
 UserRouter.get("/:id", 

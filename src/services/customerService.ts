@@ -12,10 +12,39 @@ import { ApiError } from "../utils/apiError";
 export class CustomerService {
   private repo: Repository<Customer> = AppDataSource.getRepository(Customer);
 
+  // async findAll(
+  //   query: CustomerQueryDto,
+  // ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {
+  //   const qb = this.repo.createQueryBuilder("customer");
+
+  //   if (query.search) {
+  //     qb.andWhere(
+  //       "(customer.names ILIKE :search OR customer.email ILIKE :search OR customer.phoneNumber ILIKE :search)",
+  //       { search: `%${query.search}%` },
+  //     );
+  //   }
+  //   if (query.status) {
+  //     qb.andWhere("customer.status = :status", { status: query.status });
+  //   }
+
+  //   qb.orderBy("customer.createdAt", "DESC")
+  //     .skip((query.page - 1) * query.limit)
+  //     .take(query.limit);
+
+  //   const [data, total] = await qb.getManyAndCount();
+  //   return { data, total, page: query.page, limit: query.limit };
+  // }
   async findAll(
     query: CustomerQueryDto,
   ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {
     const qb = this.repo.createQueryBuilder("customer");
+
+    qb.leftJoin("customer.updatedBy", "updatedBy").addSelect([
+      "updatedBy.id",
+      "updatedBy.names",
+      "updatedBy.phoneNumber",
+      "updatedBy.role",
+    ]);
 
     if (query.search) {
       qb.andWhere(
@@ -55,35 +84,35 @@ export class CustomerService {
     return this.repo.save(customer);
   }
 
-async updateStatus(
-  id: string,
-  status: CustomerStatus,
-  updatedById: string,
-): Promise<Customer> {
-  const customer = await this.findById(id);
+  async updateStatus(
+    id: string,
+    status: CustomerStatus,
+    updatedById: string,
+  ): Promise<Customer> {
+    const customer = await this.findById(id);
 
-  customer.status = status;
-  customer.updatedBy = { id: updatedById } as User;
+    customer.status = status;
+    customer.updatedBy = { id: updatedById } as User;
 
-  await this.repo.save(customer);
+    await this.repo.save(customer);
 
-  const updatedCustomer = await this.repo
-    .createQueryBuilder("customer")
-    .leftJoinAndSelect("customer.updatedBy", "updatedBy")
-    .addSelect([
-      "updatedBy.id",
-      "updatedBy.names",
-      "updatedBy.phoneNumber",
-      "updatedBy.role",
-    ])
-    .where("customer.id = :id", { id })
-    .getOne();
+    const updatedCustomer = await this.repo
+      .createQueryBuilder("customer")
+      .leftJoinAndSelect("customer.updatedBy", "updatedBy")
+      .addSelect([
+        "updatedBy.id",
+        "updatedBy.names",
+        "updatedBy.phoneNumber",
+        "updatedBy.role",
+      ])
+      .where("customer.id = :id", { id })
+      .getOne();
 
-  if (!updatedCustomer) {
-    throw new Error("Customer not found");
+    if (!updatedCustomer) {
+      throw new Error("Customer not found");
+    }
+    return updatedCustomer;
   }
-  return updatedCustomer;
-}
 
   async softDelete(id: string): Promise<void> {
     await this.findById(id);

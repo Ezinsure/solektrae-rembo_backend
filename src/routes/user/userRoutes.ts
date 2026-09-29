@@ -13,7 +13,7 @@ import { authenticate } from "../../middleware/authMiddleware";
 const UserRouter = Router();
 
 // Every route below requires a valid access token.
-// UserRouter.use(authenticate);
+UserRouter.use(authenticate);
 
 /**
  * Authorization policy for this system (adjust to your actual needs):
@@ -34,7 +34,7 @@ UserRouter.post(
 );
 UserRouter.get(
   "/",
-  // authenticate,
+  authenticate,
   // authorize(userRole.ADMIN, userRole.HR),
   getUsers,
 );
