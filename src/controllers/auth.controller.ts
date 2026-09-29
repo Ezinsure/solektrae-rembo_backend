@@ -6,10 +6,12 @@ import { ApiError } from "../utils/apiError";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const refreshCookieOptions = {
   httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "lax" as const,
+  secure: isProduction,
+  sameSite: isProduction ? ("none" as const) : ("lax" as const),
   path: "/",
   maxAge:
     Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000,
