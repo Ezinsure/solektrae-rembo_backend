@@ -19,7 +19,7 @@ AuthRouter.post("/login", authRateLimiter, validateDto(LoginDto), login);
 AuthRouter.post("/refresh", refresh);
 AuthRouter.post("/logout", logout);
 
-// Requires auth: these act on the currently logged-in user.
+// Requires auth
 AuthRouter.post("/logout-all", authenticate, logoutAll);
 AuthRouter.get("/me", authenticate, me);
 AuthRouter.patch(
@@ -28,5 +28,4 @@ AuthRouter.patch(
   validateDto(ChangePasswordDto),
   changeMyPassword,
 );
-
 export default AuthRouter;

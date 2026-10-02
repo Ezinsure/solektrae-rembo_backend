@@ -168,9 +168,6 @@ class UserService {
         return userdto_1.UserResponseDto.fromEntity(saved);
     }
     // Prevents a scenario where every admin gets deactivated/demoted/deleted
-    // and nobody left has permission to fix it. Excludes the user currently
-    // being acted on from the count, so it correctly blocks only when they'd
-    // be the LAST one left.
     async assertNotLastActiveAdmin(excludingUserId) {
         const remainingAdmins = await this.repo.count({
             where: { role: User_1.UserRole.ADMIN, isActive: true },

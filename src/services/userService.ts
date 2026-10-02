@@ -208,9 +208,6 @@ export class UserService {
   }
 
   // Prevents a scenario where every admin gets deactivated/demoted/deleted
-  // and nobody left has permission to fix it. Excludes the user currently
-  // being acted on from the count, so it correctly blocks only when they'd
-  // be the LAST one left.
   private async assertNotLastActiveAdmin(
     excludingUserId: string,
   ): Promise<void> {

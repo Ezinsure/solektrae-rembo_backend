@@ -20,6 +20,7 @@ exports.AppDataSource = new typeorm_1.DataSource({
         rejectUnauthorized: false,
     },
     synchronize: false,
+    // migrationsRun: true,
     logging: true,
     entities: [path_1.default.join(__dirname, "..", "entities", "**/*.{ts,js}")],
     migrations: [path_1.default.join(__dirname, "..", "migrations", "*.{ts,js}")],

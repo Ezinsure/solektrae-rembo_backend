@@ -1,46 +1,23 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
+const User_1 = require("../../entities/User");
 const validateDto_1 = require("../../middleware/validateDto");
 const userdto_1 = require("../../dtos/users/userdto");
 const user_controller_1 = require("../../controllers/user.controller");
+const roleMiddleware_1 = require("../../middleware/roleMiddleware");
 const authMiddleware_1 = require("../../middleware/authMiddleware");
+const resetPsswddto_1 = require("../../dtos/users/resetPsswddto");
 const UserRouter = (0, express_1.Router)();
 // Every route below requires a valid access token.
 UserRouter.use(authMiddleware_1.authenticate);
-/**
- * Authorization policy for this system (adjust to your actual needs):
- *  - ADMIN: full control — create, read, update, deactivate, delete, restore,
- *           reset anyone's password, manage roles.
- *  - HR:    can view the user directory (read-only) — e.g. to look up an
- *           employee's phone number or role — but cannot create, edit,
- *           deactivate, or delete accounts.
- *  - DEV:   no access to the user directory at all. A DEV user manages only
- *           their own account via /api/auth/me and /api/auth/change-password.
- */
-UserRouter.post("/", 
-// authorize(UserRole.ADMIN, UserRole.DEV),
-(0, validateDto_1.validateDto)(userdto_1.CreateUserDto), user_controller_1.createUser);
-UserRouter.get("/", authMiddleware_1.authenticate, 
-// authorize(userRole.ADMIN, userRole.HR),
-user_controller_1.getUsers);
-UserRouter.get("/:id", 
-// authorize(userRole.ADMIN, userRole.HR),
-user_controller_1.getUserById);
-// UserRouter.patch(
-//   "/:id",
-//   authorize(userRole.ADMIN),
-//   validateDto(UpdateUserDto),
-//   updateUser,
-// );
-// UserRouter.delete("/:id", authorize(userRole.ADMIN), deleteUser);
-// UserRouter.patch("/:id/restore", authorize(userRole.ADMIN), restoreUser);
-// UserRouter.patch("/:id/active", authorize(userRole.ADMIN), toggleUserActive);
-// UserRouter.patch(
-//   "/:id/reset-password",
-//   authorize(userRole.ADMIN),
-//   validateDto(AdminResetPasswordDto),
-//   adminResetPassword,
-// );
+UserRouter.post("/", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), (0, validateDto_1.validateDto)(userdto_1.CreateUserDto), user_controller_1.createUser);
+UserRouter.get("/", authMiddleware_1.authenticate, user_controller_1.getUsers);
+// UserRouter.get("/:id", getUserById);
+UserRouter.patch("/:id", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), (0, validateDto_1.validateDto)(userdto_1.UpdateUserDto), user_controller_1.updateUser);
+UserRouter.delete("/:id", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), user_controller_1.deleteUser);
+UserRouter.patch("/:id/restore", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), user_controller_1.restoreUser);
+UserRouter.patch("/:id/active", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), user_controller_1.toggleUserActive);
+UserRouter.patch("/:id/reset-password", (0, validateDto_1.validateDto)(resetPsswddto_1.AdminResetPasswordDto), user_controller_1.adminResetPassword);
 exports.default = UserRouter;
 //# sourceMappingURL=userRoutes.js.map
