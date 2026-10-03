@@ -12,17 +12,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.RefreshToken = void 0;
 const typeorm_1 = require("typeorm");
 const User_1 = require("./User");
-// One row per active (or previously active) login session. We never store
-// the raw refresh token — only a sha256 hash of it — so a database leak
-// alone can't be used to impersonate a session.
 let RefreshToken = class RefreshToken {
     id;
     user;
     userId;
     tokenHash;
     expiresAt;
-    // null = still active. Set on logout, on rotation (old token retired),
-    // or on breach-detection (see auth.service.ts refresh()).
     revokedAt;
     userAgent;
     ipAddress;
@@ -48,11 +43,11 @@ __decorate([
     __metadata("design:type", String)
 ], RefreshToken.prototype, "tokenHash", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: "timestamp" }),
+    (0, typeorm_1.Column)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], RefreshToken.prototype, "expiresAt", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: "timestamp", nullable: true }),
+    (0, typeorm_1.Column)({ type: "timestamptz", nullable: true }),
     __metadata("design:type", Object)
 ], RefreshToken.prototype, "revokedAt", void 0);
 __decorate([
@@ -64,7 +59,7 @@ __decorate([
     __metadata("design:type", Object)
 ], RefreshToken.prototype, "ipAddress", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)({ type: "timestamp" }),
+    (0, typeorm_1.CreateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], RefreshToken.prototype, "createdAt", void 0);
 exports.RefreshToken = RefreshToken = __decorate([

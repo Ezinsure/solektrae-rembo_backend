@@ -11,29 +11,7 @@ import { ApiError } from "../utils/apiError";
 
 export class CustomerService {
   private repo: Repository<Customer> = AppDataSource.getRepository(Customer);
-
-  // async findAll(
-  //   query: CustomerQueryDto,
-  // ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {
-  //   const qb = this.repo.createQueryBuilder("customer");
-
-  //   if (query.search) {
-  //     qb.andWhere(
-  //       "(customer.names ILIKE :search OR customer.email ILIKE :search OR customer.phoneNumber ILIKE :search)",
-  //       { search: `%${query.search}%` },
-  //     );
-  //   }
-  //   if (query.status) {
-  //     qb.andWhere("customer.status = :status", { status: query.status });
-  //   }
-
-  //   qb.orderBy("customer.createdAt", "DESC")
-  //     .skip((query.page - 1) * query.limit)
-  //     .take(query.limit);
-
-  //   const [data, total] = await qb.getManyAndCount();
-  //   return { data, total, page: query.page, limit: query.limit };
-  // }
+  
   async findAll(
     query: CustomerQueryDto,
   ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {

@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
+var User_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.User = exports.UserRole = void 0;
 const typeorm_1 = require("typeorm");
@@ -19,7 +20,7 @@ var UserRole;
     UserRole["USER"] = "user";
     UserRole["STAFF"] = "staff";
 })(UserRole || (exports.UserRole = UserRole = {}));
-let User = class User {
+let User = User_1 = class User {
     id;
     names;
     email;
@@ -30,9 +31,14 @@ let User = class User {
     isActive;
     mustChangePassword;
     createdAt;
-    updatedAt;
-    deletedAt;
     createdById;
+    createdBy;
+    updatedAt;
+    updatedById;
+    updatedBy;
+    deletedAt;
+    deletedById;
+    deletedBy;
 };
 exports.User = User;
 __decorate([
@@ -75,22 +81,45 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "mustChangePassword", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)({ type: "timestamp" }),
+    (0, typeorm_1.CreateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);
 __decorate([
-    (0, typeorm_1.UpdateDateColumn)({ type: "timestamp" }),
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "createdById", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1, { nullable: true, onDelete: "SET NULL" }),
+    (0, typeorm_1.JoinColumn)({ name: "createdById" }),
+    __metadata("design:type", Object)
+], User.prototype, "createdBy", void 0);
+__decorate([
+    (0, typeorm_1.UpdateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.DeleteDateColumn)({ type: "timestamp", nullable: true }),
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", Object)
+], User.prototype, "updatedById", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1, { nullable: true, onDelete: "SET NULL" }),
+    (0, typeorm_1.JoinColumn)({ name: "updatedById" }),
+    __metadata("design:type", Object)
+], User.prototype, "updatedBy", void 0);
+__decorate([
+    (0, typeorm_1.DeleteDateColumn)({ type: "timestamptz", nullable: true }),
     __metadata("design:type", Object)
 ], User.prototype, "deletedAt", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
     __metadata("design:type", Object)
-], User.prototype, "createdById", void 0);
-exports.User = User = __decorate([
+], User.prototype, "deletedById", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => User_1, { nullable: true, onDelete: "SET NULL" }),
+    (0, typeorm_1.JoinColumn)({ name: "deletedById" }),
+    __metadata("design:type", Object)
+], User.prototype, "deletedBy", void 0);
+exports.User = User = User_1 = __decorate([
     (0, typeorm_1.Entity)("users")
 ], User);
 //# sourceMappingURL=User.js.map

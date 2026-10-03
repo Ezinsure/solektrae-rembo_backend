@@ -145,7 +145,11 @@ class UserResponseDto {
     isActive;
     mustChangePassword;
     createdAt;
+    createdBy;
     updatedAt;
+    updatedBy;
+    deletedAt;
+    deletedBy;
     static fromEntity(user) {
         const dto = new UserResponseDto();
         dto.id = user.id;
@@ -157,11 +161,19 @@ class UserResponseDto {
         dto.isActive = user.isActive;
         dto.mustChangePassword = user.mustChangePassword;
         dto.createdAt = user.createdAt;
+        dto.createdBy = UserResponseDto.toAuditUser(user.createdBy);
         dto.updatedAt = user.updatedAt;
+        dto.updatedBy = UserResponseDto.toAuditUser(user.updatedBy);
+        dto.deletedAt = user.deletedAt ?? null;
+        dto.deletedBy = UserResponseDto.toAuditUser(user.deletedBy);
         return dto;
     }
     static fromEntities(users) {
         return users.map(UserResponseDto.fromEntity);
+    }
+    // Only expose id + names of the related user,
+    static toAuditUser(related) {
+        return related ? { id: related.id, names: related.names } : null;
     }
 }
 exports.UserResponseDto = UserResponseDto;
