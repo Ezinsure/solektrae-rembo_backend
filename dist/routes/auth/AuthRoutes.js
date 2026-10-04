@@ -11,7 +11,7 @@ const AuthRouter = (0, express_1.Router)();
 AuthRouter.post("/login", rateLimiter_1.authRateLimiter, (0, validateDto_1.validateDto)(logindto_1.LoginDto), auth_controller_1.login);
 AuthRouter.post("/refresh", auth_controller_1.refresh);
 AuthRouter.post("/logout", auth_controller_1.logout);
-// Requires auth: these act on the currently logged-in user.
+// Requires auth
 AuthRouter.post("/logout-all", authMiddleware_1.authenticate, auth_controller_1.logoutAll);
 AuthRouter.get("/me", authMiddleware_1.authenticate, auth_controller_1.me);
 AuthRouter.patch("/change-password", authMiddleware_1.authenticate, (0, validateDto_1.validateDto)(chnagePasswddto_1.ChangePasswordDto), auth_controller_1.changeMyPassword);

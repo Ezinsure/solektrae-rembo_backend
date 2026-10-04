@@ -72,21 +72,21 @@ export class CreateCustomerDto {
 }
 
 export class UpdateCustomerDto {
-  @IsOptional() @IsString() @IsNotEmpty() names?: string;
-  @IsOptional() @IsString() @IsNotEmpty() email?: string;
-  @IsOptional() @IsString() @IsNotEmpty() phoneNumber?: string;
-  @IsOptional() @IsString() @IsNotEmpty() service?: string;
-  @IsOptional() @IsString() @IsNotEmpty() height?: string;
-  @IsOptional() @IsString() @IsNotEmpty() hovName?: string;
-  @IsOptional() @IsString() @IsNotEmpty() hovNumber?: string;
-  @IsOptional() @IsString() @IsNotEmpty() district?: string;
-  @IsOptional() @IsString() @IsNotEmpty() sector?: string;
-  @IsOptional() @IsString() @IsNotEmpty() cell?: string;
-  @IsOptional() @IsString() @IsNotEmpty() village?: string;
-  @IsOptional() @IsString() @IsNotEmpty() street?: string;
-  @IsOptional() @IsString() @IsNotEmpty() motherName?: string;
-  @IsOptional() @IsString() @IsNotEmpty() fatherName?: string;
-  @IsOptional() @IsString() @IsNotEmpty() spouseName?: string;
+  @IsOptional() @IsString() names?: string;
+  @IsOptional() @IsString() email?: string;
+  @IsOptional() @IsString() phoneNumber?: string;
+  @IsOptional() @IsString() service?: string;
+  @IsOptional() @IsString() height?: string;
+  @IsOptional() @IsString() hovName?: string;
+  @IsOptional() @IsString() hovNumber?: string;
+  @IsOptional() @IsString() district?: string;
+  @IsOptional() @IsString() sector?: string;
+  @IsOptional() @IsString() cell?: string;
+  @IsOptional() @IsString() village?: string;
+  @IsOptional() @IsString() street?: string;
+  @IsOptional() @IsString() motherName?: string;
+  @IsOptional() @IsString() fatherName?: string;
+  @IsOptional() @IsString() spouseName?: string;
 }
 export class UpdateCustomerStatusDto {
   @IsEnum(CustomerStatus)

@@ -6,7 +6,7 @@ import { UserQueryDto } from "../dtos/users/userdto";
 import { validate } from "class-validator";
 
 export const createUser = asyncHandler(async (req, res: Response) => {
-  const user = await userService.create(req.body);
+  const user = await userService.create(req.body, req.user.id);
   res.status(201).json({ success: true, data: user });
 });
 
@@ -33,17 +33,21 @@ export const getUserById = asyncHandler(async (req, res: Response) => {
 });
 
 export const updateUser = asyncHandler(async (req, res: Response) => {
-  const user = await userService.update(req.params.id as any, req.body);
+  const user = await userService.update(
+    req.params.id as any,
+    req.body,
+    req.user.id,
+  );
   res.status(200).json({ success: true, data: user });
 });
 
 export const deleteUser = asyncHandler(async (req, res: Response) => {
-  await userService.softDelete(req.params.id as any);
+  await userService.softDelete(req.params.id as any, req.user.id);
   res.status(204).send();
 });
 
 export const restoreUser = asyncHandler(async (req, res: Response) => {
-  const user = await userService.restore(req.params.id as any);
+  const user = await userService.restore(req.params.id as any, req.user.id);
   res.status(200).json({ success: true, data: user });
 });
 
@@ -56,7 +60,11 @@ export const toggleUserActive = asyncHandler(async (req, res: Response) => {
 });
 
 export const adminResetPassword = asyncHandler(async (req, res: Response) => {
-  await userService.adminResetPassword(req.params.id as any, req.body);
+  await userService.adminResetPassword(
+    req.params.id as any,
+    req.body,
+    req.user.id,
+  );
   res
     .status(200)
     .json({ success: true, message: "Password reset successfully" });

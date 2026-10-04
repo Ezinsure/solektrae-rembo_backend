@@ -27,13 +27,13 @@ export class Service {
   @Column({ type: "boolean", default: true })
   isActive: boolean;
 
-  @CreateDateColumn({ type: "timestamp" })
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamp" })
+  @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 
-  @DeleteDateColumn({ type: "timestamp", nullable: true })
+  @DeleteDateColumn({ type: "timestamptz", nullable: true })
   deletedAt: Date | null;
 
   @Column({ type: "uuid", nullable: true })

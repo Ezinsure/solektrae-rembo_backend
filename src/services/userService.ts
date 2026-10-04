@@ -1,4 +1,4 @@
-import { Repository } from "typeorm";
+import { IsNull, Repository } from "typeorm";
 import { AppDataSource } from "../config/database";
 import { User, UserRole } from "../entities/User";
 import { CreateUserDto } from "../dtos/users/userdto";
@@ -9,6 +9,7 @@ import { UserQueryDto } from "../dtos/users/userdto";
 import { UserResponseDto } from "../dtos/users/userdto";
 import { hashPassword, comparePassword } from "../utils/password";
 import { ApiError } from "../utils/apiError";
+import { RefreshToken } from "../entities/RefreshToken";
 
 export class UserService {
   private repo: Repository<User> = AppDataSource.getRepository(User);
@@ -19,7 +20,12 @@ export class UserService {
     page: number;
     limit: number;
   }> {
-    const qb = this.repo.createQueryBuilder("user");
+    const qb = this.repo
+      .createQueryBuilder("user")
+      .leftJoin("user.createdBy", "createdBy")
+      .addSelect(["createdBy.id", "createdBy.names"])
+      .leftJoin("user.updatedBy", "updatedBy")
+      .addSelect(["updatedBy.id", "updatedBy.names"]);
 
     if (query.search) {
       qb.andWhere("(user.names ILIKE :search OR user.email ILIKE :search)", {
@@ -48,11 +54,18 @@ export class UserService {
   }
 
   async findById(id: string): Promise<UserResponseDto> {
-    const user = await this.repo.findOne({ where: { id } });
+    const user = await this.repo
+      .createQueryBuilder("user")
+      .leftJoin("user.createdBy", "createdBy")
+      .addSelect(["createdBy.id", "createdBy.names"])
+      .leftJoin("user.updatedBy", "updatedBy")
+      .addSelect(["updatedBy.id", "updatedBy.names"])
+      .where("user.id = :id", { id })
+      .getOne();
+
     if (!user) throw new ApiError(404, "User not found");
     return UserResponseDto.fromEntity(user);
   }
-
   // Used internally by auth.service — needs the password hash, so it
   // deliberately returns the raw entity, not the response DTO.
   async findEntityByEmailWithPassword(email: string): Promise<User | null> {
@@ -69,7 +82,10 @@ export class UserService {
     return user;
   }
 
-  async create(dto: CreateUserDto): Promise<UserResponseDto> {
+  async create(
+    dto: CreateUserDto,
+    createdById: string,
+  ): Promise<UserResponseDto> {
     const existing = await this.repo.findOne({
       where: { email: dto.email },
       withDeleted: true,
@@ -77,7 +93,6 @@ export class UserService {
     if (existing) {
       throw new ApiError(409, "A user with this email already exists");
     }
-
     const user = this.repo.create({
       names: dto.names,
       email: dto.email,
@@ -86,84 +101,82 @@ export class UserService {
       phoneNumber: dto.phoneNumber,
       profileImage: dto.profileImage ?? null,
       mustChangePassword: true,
+      createdBy: { id: createdById } as User,
+      updatedBy: { id: createdById } as User,
     });
-
     const saved = await this.repo.save(user);
-    return UserResponseDto.fromEntity(saved);
+
+    const full = await this.repo.findOneOrFail({
+      where: { id: saved.id },
+      relations: { createdBy: true, updatedBy: true },
+    });
+    return UserResponseDto.fromEntity(full);
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    userId: string,
+  ): Promise<UserResponseDto> {
     const user = await this.findEntityById(id);
 
-    if (dto.email && dto.email !== user.email) {
+    const email = dto.email?.trim().toLowerCase();
+    if (email && email !== user.email) {
       const existing = await this.repo.findOne({
-        where: { email: dto.email },
+        where: { email },
         withDeleted: true,
       });
-      if (existing) {
+      if (existing)
         throw new ApiError(409, "A user with this email already exists");
-      }
     }
 
-    // Guard: don't let the last remaining admin be demoted.
-    if (
-      dto.role &&
-      dto.role !== UserRole.ADMIN &&
-      user.role === UserRole.ADMIN
-    ) {
+    // Guard: don't let the last remaining admin be demoted or deactivated.
+    const demoting =
+      dto.role && dto.role !== UserRole.ADMIN && user.role === UserRole.ADMIN;
+    const deactivating = dto.isActive === false && user.role === UserRole.ADMIN;
+    if (demoting || deactivating) {
       await this.assertNotLastActiveAdmin(user.id);
     }
-    // Guard: don't let the last remaining admin be deactivated.
-    if (dto.isActive === false && user.role === UserRole.ADMIN) {
-      await this.assertNotLastActiveAdmin(user.id);
-    }
-    const saved = await this.repo.save(user);
-    return UserResponseDto.fromEntity(saved);
+
+    // Apply the changes (only fields that were sent)
+    if (dto.names !== undefined) user.names = dto.names;
+    if (email !== undefined) user.email = email;
+    if (dto.role !== undefined) user.role = dto.role;
+    if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber;
+    if (dto.profileImage !== undefined) user.profileImage = dto.profileImage;
+    if (dto.isActive !== undefined) user.isActive = dto.isActive;
+
+    user.updatedById = userId;
+    user.updatedBy = { id: userId } as User;
+
+    await this.repo.save(user);
+    return this.findById(user.id);
   }
 
-  //   async update(id: string, dto: UpdateUserDto): Promise<UserResponseDto> {
-  //   const user = await this.findEntityById(id);
-
-  //   if (dto.email && dto.email !== user.email) {
-  //     const existing = await this.repo.findOne({
-  //       where: { email: dto.email },
-  //       withDeleted: true,
-  //     });
-  //     if (existing && existing.id !== user.id) {
-  //       throw new ApiError(409, "A user with this email already exists");
-  //     }
-  //   }
-
-  //   if (dto.role && dto.role !== UserRole.ADMIN && user.role === UserRole.ADMIN) {
-  //     await this.assertNotLastActiveAdmin(user.id);
-  //   }
-  //   if (dto.isActive === false && user.role === UserRole.ADMIN) {
-  //     await this.assertNotLastActiveAdmin(user.id);
-  //   }
-
-  //   if (dto.names !== undefined) user.names = dto.names;
-  //   if (dto.email !== undefined) user.email = dto.email;
-  //   if (dto.role !== undefined) user.role = dto.role;
-  //   if (dto.phoneNumber !== undefined) user.phoneNumber = dto.phoneNumber;
-  //   if (dto.profileImage !== undefined) user.profileImage = dto.profileImage;
-  //   if (dto.isActive !== undefined) user.isActive = dto.isActive;
-
-  //   const saved = await this.repo.save(user);
-  //   return UserResponseDto.fromEntity(saved);
-  // }
-
-  async softDelete(id: string): Promise<void> {
+  async softDelete(id: string, userId: string): Promise<void> {
     const user = await this.findEntityById(id);
     if (user.role === UserRole.ADMIN) {
       await this.assertNotLastActiveAdmin(user.id);
     }
-    await this.repo.softDelete(id);
+
+    await this.repo.manager.transaction(async (manager) => {
+      await manager.update(User, id, { deletedById: userId });
+      await manager.softDelete(User, id);
+    });
   }
 
-  async restore(id: string): Promise<UserResponseDto> {
+  async restore(id: string, userId: string): Promise<UserResponseDto> {
     const user = await this.repo.findOne({ where: { id }, withDeleted: true });
     if (!user) throw new ApiError(404, "User not found");
-    await this.repo.restore(id);
+
+    await this.repo.manager.transaction(async (manager) => {
+      await manager.restore(User, id);
+      await manager.update(User, id, {
+        deletedById: null,
+        updatedById: userId,
+      });
+    });
+
     return this.findById(id);
   }
 
@@ -190,11 +203,24 @@ export class UserService {
   async adminResetPassword(
     id: string,
     dto: AdminResetPasswordDto,
+    userId: string,
   ): Promise<void> {
     const user = await this.findEntityById(id);
     user.password = await hashPassword(dto.newPassword);
     user.mustChangePassword = true;
-    await this.repo.save(user);
+    user.updatedById = userId;
+    user.updatedBy = { id: userId } as User;
+
+    await this.repo.manager.transaction(async (manager) => {
+      await manager.save(user);
+
+      // Log the user out on every device: revoke all their active refresh tokens
+      await manager.update(
+        RefreshToken,
+        { userId: id, revokedAt: IsNull() },
+        { revokedAt: new Date() },
+      );
+    });
   }
 
   async setActive(id: string, isActive: boolean): Promise<UserResponseDto> {
@@ -208,9 +234,6 @@ export class UserService {
   }
 
   // Prevents a scenario where every admin gets deactivated/demoted/deleted
-  // and nobody left has permission to fix it. Excludes the user currently
-  // being acted on from the count, so it correctly blocks only when they'd
-  // be the LAST one left.
   private async assertNotLastActiveAdmin(
     excludingUserId: string,
   ): Promise<void> {

@@ -73,13 +73,13 @@ export class Customer {
   })
   status: CustomerStatus;
 
-  @CreateDateColumn({ type: "timestamp" })
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 
-  @UpdateDateColumn({ type: "timestamp" })
+  @UpdateDateColumn({ type: "timestamptz" })
   updatedAt: Date;
 
-  @DeleteDateColumn({ type: "timestamp", nullable: true })
+  @DeleteDateColumn({ type: "timestamptz", nullable: true })
   deletedAt: Date | null;
 
   @ManyToOne(() => User, { nullable: true })

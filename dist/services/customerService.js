@@ -6,25 +6,6 @@ const database_1 = require("../config/database");
 const apiError_1 = require("../utils/apiError");
 class CustomerService {
     repo = database_1.AppDataSource.getRepository(Customer_1.Customer);
-    // async findAll(
-    //   query: CustomerQueryDto,
-    // ): Promise<{ data: Customer[]; total: number; page: number; limit: number }> {
-    //   const qb = this.repo.createQueryBuilder("customer");
-    //   if (query.search) {
-    //     qb.andWhere(
-    //       "(customer.names ILIKE :search OR customer.email ILIKE :search OR customer.phoneNumber ILIKE :search)",
-    //       { search: `%${query.search}%` },
-    //     );
-    //   }
-    //   if (query.status) {
-    //     qb.andWhere("customer.status = :status", { status: query.status });
-    //   }
-    //   qb.orderBy("customer.createdAt", "DESC")
-    //     .skip((query.page - 1) * query.limit)
-    //     .take(query.limit);
-    //   const [data, total] = await qb.getManyAndCount();
-    //   return { data, total, page: query.page, limit: query.limit };
-    // }
     async findAll(query) {
         const qb = this.repo.createQueryBuilder("customer");
         qb.leftJoin("customer.updatedBy", "updatedBy").addSelect([

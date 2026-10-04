@@ -5,6 +5,8 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  JoinColumn,
+  ManyToOne,
 } from "typeorm";
 
 export enum UserRole {
@@ -47,15 +49,33 @@ export class User {
   @Column({ default: true, type: "boolean" })
   mustChangePassword: boolean;
 
-  @CreateDateColumn({ type: "timestamp" })
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
-
-  @UpdateDateColumn({ type: "timestamp" })
-  updatedAt: Date;
-
-  @DeleteDateColumn({ type: "timestamp", nullable: true })
-  deletedAt: Date | null;
 
   @Column({ type: "uuid", nullable: true })
   createdById: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "createdById" })
+  createdBy: User | null;
+
+  @UpdateDateColumn({ type: "timestamptz" })
+  updatedAt: Date;
+
+  @Column({ type: "uuid", nullable: true })
+  updatedById: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "updatedById" })
+  updatedBy: User | null;
+
+  @DeleteDateColumn({ type: "timestamptz", nullable: true })
+  deletedAt: Date | null;
+
+  @Column({ type: "uuid", nullable: true })
+  deletedById: string | null;
+
+  @ManyToOne(() => User, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "deletedById" })
+  deletedBy: User | null;
 }

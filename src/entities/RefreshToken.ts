@@ -9,9 +9,6 @@ import {
 } from "typeorm";
 import { User } from "./User";
 
-// One row per active (or previously active) login session. We never store
-// the raw refresh token — only a sha256 hash of it — so a database leak
-// alone can't be used to impersonate a session.
 @Entity("refresh_tokens")
 export class RefreshToken {
   @PrimaryGeneratedColumn("uuid")
@@ -28,12 +25,10 @@ export class RefreshToken {
   @Column({ type: "varchar" })
   tokenHash: string;
 
-  @Column({ type: "timestamp" })
+  @Column({ type: "timestamptz"})
   expiresAt: Date;
 
-  // null = still active. Set on logout, on rotation (old token retired),
-  // or on breach-detection (see auth.service.ts refresh()).
-  @Column({ type: "timestamp", nullable: true })
+  @Column({ type: "timestamptz", nullable: true })
   revokedAt: Date | null;
 
   @Column({ type: "varchar", nullable: true })
@@ -42,6 +37,6 @@ export class RefreshToken {
   @Column({ type: "varchar", nullable: true })
   ipAddress: string | null;
 
-  @CreateDateColumn({ type: "timestamp" })
+  @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 }

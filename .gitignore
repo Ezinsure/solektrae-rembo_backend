@@ -9,3 +9,5 @@ temp/
 .env*
 .env.local
 .env.*.local
+
+dist/

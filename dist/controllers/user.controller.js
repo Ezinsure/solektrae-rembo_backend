@@ -7,7 +7,7 @@ const class_transformer_1 = require("class-transformer");
 const userdto_1 = require("../dtos/users/userdto");
 const class_validator_1 = require("class-validator");
 exports.createUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.create(req.body);
+    const user = await userService_1.userService.create(req.body, req.user.id);
     res.status(201).json({ success: true, data: user });
 });
 exports.getUsers = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
@@ -31,15 +31,15 @@ exports.getUserById = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     res.status(200).json({ success: true, data: user });
 });
 exports.updateUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.update(req.params.id, req.body);
+    const user = await userService_1.userService.update(req.params.id, req.body, req.user.id);
     res.status(200).json({ success: true, data: user });
 });
 exports.deleteUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    await userService_1.userService.softDelete(req.params.id);
+    await userService_1.userService.softDelete(req.params.id, req.user.id);
     res.status(204).send();
 });
 exports.restoreUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.restore(req.params.id);
+    const user = await userService_1.userService.restore(req.params.id, req.user.id);
     res.status(200).json({ success: true, data: user });
 });
 exports.toggleUserActive = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
@@ -47,7 +47,7 @@ exports.toggleUserActive = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     res.status(200).json({ success: true, data: user });
 });
 exports.adminResetPassword = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    await userService_1.userService.adminResetPassword(req.params.id, req.body);
+    await userService_1.userService.adminResetPassword(req.params.id, req.body, req.user.id);
     res
         .status(200)
         .json({ success: true, message: "Password reset successfully" });

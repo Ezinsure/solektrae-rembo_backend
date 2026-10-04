@@ -48,15 +48,15 @@ __decorate([
     __metadata("design:type", Boolean)
 ], Service.prototype, "isActive", void 0);
 __decorate([
-    (0, typeorm_1.CreateDateColumn)({ type: "timestamp" }),
+    (0, typeorm_1.CreateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], Service.prototype, "createdAt", void 0);
 __decorate([
-    (0, typeorm_1.UpdateDateColumn)({ type: "timestamp" }),
+    (0, typeorm_1.UpdateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], Service.prototype, "updatedAt", void 0);
 __decorate([
-    (0, typeorm_1.DeleteDateColumn)({ type: "timestamp", nullable: true }),
+    (0, typeorm_1.DeleteDateColumn)({ type: "timestamptz", nullable: true }),
     __metadata("design:type", Object)
 ], Service.prototype, "deletedAt", void 0);
 __decorate([

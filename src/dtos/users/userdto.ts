@@ -101,6 +101,7 @@ export class UserQueryDto {
   limit: number = 20;
 }
 
+type AuditUser = { id: string; names: string } | null;
 export class UserResponseDto {
   id: string;
   names: string;
@@ -111,7 +112,11 @@ export class UserResponseDto {
   isActive: boolean;
   mustChangePassword: boolean;
   createdAt: Date;
+  createdBy: AuditUser;
   updatedAt: Date;
+  updatedBy: AuditUser;
+  deletedAt: Date | null;
+  deletedBy: AuditUser;
 
   static fromEntity(user: User): UserResponseDto {
     const dto = new UserResponseDto();
@@ -124,11 +129,18 @@ export class UserResponseDto {
     dto.isActive = user.isActive;
     dto.mustChangePassword = user.mustChangePassword;
     dto.createdAt = user.createdAt;
+    dto.createdBy = UserResponseDto.toAuditUser(user.createdBy);
     dto.updatedAt = user.updatedAt;
+    dto.updatedBy = UserResponseDto.toAuditUser(user.updatedBy);
+    dto.deletedAt = user.deletedAt ?? null;
+    dto.deletedBy = UserResponseDto.toAuditUser(user.deletedBy);
     return dto;
   }
-
   static fromEntities(users: User[]): UserResponseDto[] {
     return users.map(UserResponseDto.fromEntity);
+  }
+  // Only expose id + names of the related user,
+  private static toAuditUser(related?: User | null): AuditUser {
+    return related ? { id: related.id, names: related.names } : null;
   }
 }
