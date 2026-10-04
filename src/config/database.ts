@@ -20,7 +20,6 @@ export const AppDataSource = new DataSource({
   },
 
   synchronize: false,
-  // migrationsRun: true,
   logging: true,
 
   entities: [path.join(__dirname, "..", "entities", "**/*.{ts,js}")],
