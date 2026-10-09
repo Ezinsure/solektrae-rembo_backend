@@ -11,3 +11,6 @@ temp/
 .env.*.local
 
 dist/
+
+# lock files
+package-lock.json
