@@ -18,7 +18,6 @@ import { AdminResetPasswordDto } from "../../dtos/users/resetPsswddto";
 
 const UserRouter = Router();
 
-// Every route below requires a valid access token.
 UserRouter.use(authenticate);
 
 UserRouter.post(
@@ -28,7 +27,7 @@ UserRouter.post(
   createUser,
 );
 UserRouter.get("/", authenticate, getUsers);
-// UserRouter.get("/:id", getUserById);
+UserRouter.get("/:id", getUserById);
 UserRouter.patch(
   "/:id",
   authorize(UserRole.ADMIN, UserRole.DEV),

@@ -9,11 +9,10 @@ const roleMiddleware_1 = require("../../middleware/roleMiddleware");
 const authMiddleware_1 = require("../../middleware/authMiddleware");
 const resetPsswddto_1 = require("../../dtos/users/resetPsswddto");
 const UserRouter = (0, express_1.Router)();
-// Every route below requires a valid access token.
 UserRouter.use(authMiddleware_1.authenticate);
 UserRouter.post("/", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), (0, validateDto_1.validateDto)(userdto_1.CreateUserDto), user_controller_1.createUser);
 UserRouter.get("/", authMiddleware_1.authenticate, user_controller_1.getUsers);
-// UserRouter.get("/:id", getUserById);
+UserRouter.get("/:id", user_controller_1.getUserById);
 UserRouter.patch("/:id", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), (0, validateDto_1.validateDto)(userdto_1.UpdateUserDto), user_controller_1.updateUser);
 UserRouter.delete("/:id", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), user_controller_1.deleteUser);
 UserRouter.patch("/:id/restore", (0, roleMiddleware_1.authorize)(User_1.UserRole.ADMIN, User_1.UserRole.DEV), user_controller_1.restoreUser);

@@ -25,10 +25,6 @@ __decorate([
     (0, class_validator_1.IsNotEmpty)(),
     __metadata("design:type", String)
 ], LoginDto.prototype, "password", void 0);
-// Deliberately does NOT include a `role` field — the bootstrap endpoint
-// always creates an ADMIN, regardless of what's sent. Letting the caller
-// choose the role here would defeat the point of the guard (the whole
-// premise is "there's no admin yet to authorize this").
 class BootstrapAdminDto {
     names;
     email;

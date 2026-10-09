@@ -6,8 +6,9 @@ const asyncHandle_1 = require("../utils/asyncHandle");
 const class_transformer_1 = require("class-transformer");
 const userdto_1 = require("../dtos/users/userdto");
 const class_validator_1 = require("class-validator");
+const auditContext_1 = require("../utils/auditContext");
 exports.createUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.create(req.body, req.user.id);
+    const user = await userService_1.userService.create(req.body, (0, auditContext_1.auditContext)(req));
     res.status(201).json({ success: true, data: user });
 });
 exports.getUsers = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
@@ -31,23 +32,23 @@ exports.getUserById = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     res.status(200).json({ success: true, data: user });
 });
 exports.updateUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.update(req.params.id, req.body, req.user.id);
+    const user = await userService_1.userService.update(req.params.id, req.body, (0, auditContext_1.auditContext)(req));
     res.status(200).json({ success: true, data: user });
 });
 exports.deleteUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    await userService_1.userService.softDelete(req.params.id, req.user.id);
+    await userService_1.userService.softDelete(req.params.id, (0, auditContext_1.auditContext)(req));
     res.status(204).send();
 });
 exports.restoreUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.restore(req.params.id, req.user.id);
+    const user = await userService_1.userService.restore(req.params.id, (0, auditContext_1.auditContext)(req));
     res.status(200).json({ success: true, data: user });
 });
 exports.toggleUserActive = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.setActive(req.params.id, req.body.isActive);
+    const user = await userService_1.userService.setActive(req.params.id, req.body.isActive, (0, auditContext_1.auditContext)(req));
     res.status(200).json({ success: true, data: user });
 });
 exports.adminResetPassword = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    await userService_1.userService.adminResetPassword(req.params.id, req.body, req.user.id);
+    await userService_1.userService.adminResetPassword(req.params.id, req.body, (0, auditContext_1.auditContext)(req));
     res
         .status(200)
         .json({ success: true, message: "Password reset successfully" });

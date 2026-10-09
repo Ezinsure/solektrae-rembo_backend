@@ -8,6 +8,26 @@ const userdto_1 = require("../dtos/users/userdto");
 const password_1 = require("../utils/password");
 const apiError_1 = require("../utils/apiError");
 const RefreshToken_1 = require("../entities/RefreshToken");
+const ActivityLog_1 = require("../entities/ActivityLog");
+const diff_1 = require("../utils/diff");
+const activityLog_1 = require("./activityLog");
+// Readable names shown in the log's "Changes" list
+const USER_LABELS = {
+    names: "Name",
+    email: "Email",
+    phoneNumber: "Phone",
+    role: "Role",
+    isActive: "Active",
+    profileImage: "Photo",
+};
+const USER_TRACKED = [
+    "names",
+    "email",
+    "phoneNumber",
+    "role",
+    "isActive",
+    "profileImage",
+];
 class UserService {
     repo = database_1.AppDataSource.getRepository(User_1.User);
     async findAll(query) {
@@ -52,13 +72,11 @@ class UserService {
             throw new apiError_1.ApiError(404, "User not found");
         return userdto_1.UserResponseDto.fromEntity(user);
     }
-    // Used internally by auth.service — needs the password hash, so it
-    // deliberately returns the raw entity, not the response DTO.
     async findEntityByEmailWithPassword(email) {
         return this.repo
             .createQueryBuilder("user")
             .addSelect("user.password")
-            .where("user.email = :email", { email })
+            .where("user.email = :email", { email: email.trim().toLowerCase() })
             .getOne();
     }
     async findEntityById(id) {
@@ -67,34 +85,39 @@ class UserService {
             throw new apiError_1.ApiError(404, "User not found");
         return user;
     }
-    async create(dto, createdById) {
+    async create(dto, ctx) {
+        const email = dto.email.trim().toLowerCase();
         const existing = await this.repo.findOne({
-            where: { email: dto.email },
+            where: { email },
             withDeleted: true,
         });
         if (existing) {
             throw new apiError_1.ApiError(409, "A user with this email already exists");
         }
+        const author = ctx.actorId ? { id: ctx.actorId } : null;
         const user = this.repo.create({
             names: dto.names,
-            email: dto.email,
+            email,
             password: await (0, password_1.hashPassword)(dto.password),
             role: dto.role,
             phoneNumber: dto.phoneNumber,
             profileImage: dto.profileImage ?? null,
             mustChangePassword: true,
-            createdBy: { id: createdById },
-            updatedBy: { id: createdById },
+            createdBy: author,
+            updatedBy: author,
         });
         const saved = await this.repo.save(user);
-        const full = await this.repo.findOneOrFail({
-            where: { id: saved.id },
-            relations: { createdBy: true, updatedBy: true },
+        await activityLog_1.activityLogService.log(ctx, {
+            action: ActivityLog_1.LogAction.CREATE,
+            entity: ActivityLog_1.LogEntity.USER,
+            entityId: saved.id,
+            summary: `Created user ${saved.names} (${saved.role})`,
         });
-        return userdto_1.UserResponseDto.fromEntity(full);
+        return this.findById(saved.id);
     }
-    async update(id, dto, userId) {
+    async update(id, dto, ctx) {
         const user = await this.findEntityById(id);
+        const before = { ...user }; // snapshot for the log's "Changes"
         const email = dto.email?.trim().toLowerCase();
         if (email && email !== user.email) {
             const existing = await this.repo.findOne({
@@ -123,69 +146,132 @@ class UserService {
             user.profileImage = dto.profileImage;
         if (dto.isActive !== undefined)
             user.isActive = dto.isActive;
-        user.updatedById = userId;
-        user.updatedBy = { id: userId };
+        const changes = (0, diff_1.diff)(before, user, { only: [...USER_TRACKED], labels: USER_LABELS });
+        if (changes.length === 0)
+            return this.findById(user.id); // nothing changed: no save, no log
+        user.updatedById = ctx.actorId;
+        user.updatedBy = ctx.actorId ? { id: ctx.actorId } : null;
         await this.repo.save(user);
+        await activityLog_1.activityLogService.log(ctx, {
+            action: ActivityLog_1.LogAction.UPDATE,
+            entity: ActivityLog_1.LogEntity.USER,
+            entityId: user.id,
+            summary: `Updated user ${user.names}`,
+            changes,
+        });
         return this.findById(user.id);
     }
-    async softDelete(id, userId) {
+    async softDelete(id, ctx) {
         const user = await this.findEntityById(id);
+        if (ctx.actorId === id) {
+            throw new apiError_1.ApiError(400, "You cannot delete your own account");
+        }
         if (user.role === User_1.UserRole.ADMIN) {
             await this.assertNotLastActiveAdmin(user.id);
         }
         await this.repo.manager.transaction(async (manager) => {
-            await manager.update(User_1.User, id, { deletedById: userId });
+            await manager.update(User_1.User, id, { deletedById: ctx.actorId });
             await manager.softDelete(User_1.User, id);
+            // Log the user out everywhere
+            await manager.update(RefreshToken_1.RefreshToken, { userId: id, revokedAt: (0, typeorm_1.IsNull)() }, { revokedAt: new Date() });
+            await activityLog_1.activityLogService.log(ctx, {
+                action: ActivityLog_1.LogAction.DELETE,
+                entity: ActivityLog_1.LogEntity.USER,
+                entityId: id,
+                summary: `Deleted user ${user.names}`,
+            }, manager);
         });
     }
-    async restore(id, userId) {
+    async restore(id, ctx) {
         const user = await this.repo.findOne({ where: { id }, withDeleted: true });
         if (!user)
             throw new apiError_1.ApiError(404, "User not found");
+        if (!user.deletedAt)
+            throw new apiError_1.ApiError(400, "This user is not deleted");
         await this.repo.manager.transaction(async (manager) => {
             await manager.restore(User_1.User, id);
             await manager.update(User_1.User, id, {
                 deletedById: null,
-                updatedById: userId,
+                updatedById: ctx.actorId,
             });
+            await activityLog_1.activityLogService.log(ctx, {
+                action: ActivityLog_1.LogAction.RESTORE,
+                entity: ActivityLog_1.LogEntity.USER,
+                entityId: id,
+                summary: `Restored user ${user.names}`,
+            }, manager);
         });
         return this.findById(id);
     }
-    async changeOwnPassword(userId, dto) {
+    async changeOwnPassword(ctx, dto) {
+        if (!ctx.actorId)
+            throw new apiError_1.ApiError(401, "Authentication required");
         const user = await this.repo
             .createQueryBuilder("user")
             .addSelect("user.password")
-            .where("user.id = :id", { id: userId })
+            .where("user.id = :id", { id: ctx.actorId })
             .getOne();
         if (!user)
             throw new apiError_1.ApiError(404, "User not found");
         const matches = await (0, password_1.comparePassword)(dto.currentPassword, user.password);
+        // 400, not 401: a 401 makes the frontend think the session expired and logs the user out
         if (!matches)
-            throw new apiError_1.ApiError(401, "Current password is incorrect");
+            throw new apiError_1.ApiError(400, "Current password is incorrect");
         user.password = await (0, password_1.hashPassword)(dto.newPassword);
         user.mustChangePassword = false;
+        user.updatedById = ctx.actorId;
         await this.repo.save(user);
+        // Never the password itself, only that it changed
+        await activityLog_1.activityLogService.log(ctx, {
+            action: ActivityLog_1.LogAction.PASSWORD_CHANGE,
+            entity: ActivityLog_1.LogEntity.USER,
+            entityId: user.id,
+            summary: "Changed own password",
+        });
     }
-    async adminResetPassword(id, dto, userId) {
+    async adminResetPassword(id, dto, ctx) {
         const user = await this.findEntityById(id);
         user.password = await (0, password_1.hashPassword)(dto.newPassword);
         user.mustChangePassword = true;
-        user.updatedById = userId;
-        user.updatedBy = { id: userId };
+        user.updatedById = ctx.actorId;
+        user.updatedBy = ctx.actorId ? { id: ctx.actorId } : null;
         await this.repo.manager.transaction(async (manager) => {
             await manager.save(user);
             // Log the user out on every device: revoke all their active refresh tokens
             await manager.update(RefreshToken_1.RefreshToken, { userId: id, revokedAt: (0, typeorm_1.IsNull)() }, { revokedAt: new Date() });
+            await activityLog_1.activityLogService.log(ctx, {
+                action: ActivityLog_1.LogAction.PASSWORD_RESET,
+                entity: ActivityLog_1.LogEntity.USER,
+                entityId: id,
+                summary: `Reset password for ${user.names}`,
+            }, manager);
         });
     }
-    async setActive(id, isActive) {
+    async setActive(id, isActive, ctx) {
         const user = await this.findEntityById(id);
+        if (user.isActive === isActive)
+            return this.findById(id); // already in that state
         if (!isActive && user.role === User_1.UserRole.ADMIN) {
             await this.assertNotLastActiveAdmin(user.id);
         }
         user.isActive = isActive;
-        const saved = await this.repo.save(user);
-        return userdto_1.UserResponseDto.fromEntity(saved);
+        user.updatedById = ctx.actorId;
+        user.updatedBy = ctx.actorId ? { id: ctx.actorId } : null;
+        await this.repo.manager.transaction(async (manager) => {
+            await manager.save(user);
+            // A deactivated user shouldn't stay signed in
+            if (!isActive) {
+                await manager.update(RefreshToken_1.RefreshToken, { userId: id, revokedAt: (0, typeorm_1.IsNull)() }, { revokedAt: new Date() });
+            }
+            await activityLog_1.activityLogService.log(ctx, {
+                action: ActivityLog_1.LogAction.UPDATE,
+                entity: ActivityLog_1.LogEntity.USER,
+                entityId: id,
+                summary: `${isActive ? "Activated" : "Deactivated"} user ${user.names}`,
+                changes: [{ field: "Active", from: !isActive, to: isActive }],
+            }, manager);
+        });
+        return this.findById(id);
     }
     // Prevents a scenario where every admin gets deactivated/demoted/deleted
     async assertNotLastActiveAdmin(excludingUserId) {
@@ -195,9 +281,7 @@ class UserService {
         const targetIsCountedAdmin = await this.repo.findOne({
             where: { id: excludingUserId, role: User_1.UserRole.ADMIN, isActive: true },
         });
-        const countExcludingTarget = targetIsCountedAdmin
-            ? remainingAdmins - 1
-            : remainingAdmins;
+        const countExcludingTarget = targetIsCountedAdmin ? remainingAdmins - 1 : remainingAdmins;
         if (countExcludingTarget < 1) {
             throw new apiError_1.ApiError(409, "Cannot proceed: this is the last active admin account. Promote another user to admin first.");
         }
