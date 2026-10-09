@@ -3,6 +3,7 @@ import { authService } from "../services/authService";
 import { userService } from "../services/userService";
 import { asyncHandler } from "../utils/asyncHandle";
 import { ApiError } from "../utils/apiError";
+import { auditContext } from "../utils/auditContext";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 
@@ -18,10 +19,7 @@ const refreshCookieOptions = {
 };
 
 export const login = asyncHandler(async (req, res: Response) => {
-  const result = await authService.login(req.body, {
-    userAgent: req.headers["user-agent"],
-    ip: req.ip,
-  });
+  const result = await authService.login(req.body, auditContext(req));
 
   res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
   res.status(200).json({
@@ -37,10 +35,7 @@ export const refresh = asyncHandler(async (req, res: Response) => {
     throw new ApiError(401, "No refresh token provided");
   }
   try {
-    const result = await authService.refresh(token, {
-      userAgent: req.headers["user-agent"],
-      ip: req.ip,
-    });
+    const result = await authService.refresh(token, auditContext(req));
     res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
     return res
       .status(200)
@@ -53,13 +48,13 @@ export const refresh = asyncHandler(async (req, res: Response) => {
 
 export const logout = asyncHandler(async (req, res: Response) => {
   const token = req.cookies?.[REFRESH_COOKIE_NAME];
-  if (token) await authService.logout(token);
+  if (token) await authService.logout(token, auditContext(req));
   res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
   res.status(204).send();
 });
 
 export const logoutAll = asyncHandler(async (req, res: Response) => {
-  await authService.logoutAll(req.user!.id);
+  await authService.logoutAll(auditContext(req));
   res.clearCookie(REFRESH_COOKIE_NAME, { path: "/" });
   res.status(204).send();
 });

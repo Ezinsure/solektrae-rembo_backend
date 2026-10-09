@@ -171,7 +171,6 @@ class UserResponseDto {
     static fromEntities(users) {
         return users.map(UserResponseDto.fromEntity);
     }
-    // Only expose id + names of the related user,
     static toAuditUser(related) {
         return related ? { id: related.id, names: related.names } : null;
     }

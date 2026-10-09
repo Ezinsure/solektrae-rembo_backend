@@ -9,11 +9,6 @@ const apiError_1 = require("../utils/apiError");
 class SetupService {
     repo = database_1.AppDataSource.getRepository(User_1.User);
     async bootstrapAdmin(dto) {
-        // The entire security model of this endpoint rests on this one check.
-        // `withDeleted: true` matters: if every user were somehow soft-deleted,
-        // a normal count() would return 0 and this would wrongly treat the
-        // system as "empty," reopening bootstrap on a system that has actually
-        // already been initialized.
         const existingUserCount = await this.repo.count({ withDeleted: true });
         if (existingUserCount > 0) {
             throw new apiError_1.ApiError(403, "System already initialized. Ask an existing admin to create your account.");

@@ -139,7 +139,7 @@ export class UserResponseDto {
   static fromEntities(users: User[]): UserResponseDto[] {
     return users.map(UserResponseDto.fromEntity);
   }
-  // Only expose id + names of the related user,
+
   private static toAuditUser(related?: User | null): AuditUser {
     return related ? { id: related.id, names: related.names } : null;
   }

@@ -29,13 +29,6 @@ export function verifyAccessToken(token: string): AccessTokenPayload {
   return jwt.verify(token, ACCESS_SECRET) as AccessTokenPayload;
 }
 
-// Refresh tokens are NOT JWTs — they're high-entropy random strings. A JWT's
-// self-contained/statelessness is exactly what we don't want here: we need
-// to be able to look one up and revoke it. sha256 (not bcrypt) is
-// deliberate: bcrypt's slowness defends against brute-forcing *low-entropy*
-// human-chosen secrets (passwords). A 64-byte random token already has far
-// more entropy than bcrypt could ever add value against — sha256 is fast
-// and sufficient for hashing high-entropy secrets.
 export function generateRefreshToken(): {
   raw: string;
   hash: string;
