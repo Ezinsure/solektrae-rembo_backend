@@ -9,11 +9,6 @@ export class LoginDto {
   password: string;
 }
 
-
-// Deliberately does NOT include a `role` field — the bootstrap endpoint
-// always creates an ADMIN, regardless of what's sent. Letting the caller
-// choose the role here would defeat the point of the guard (the whole
-// premise is "there's no admin yet to authorize this").
 export class BootstrapAdminDto {
   @IsString()
   @IsNotEmpty()
