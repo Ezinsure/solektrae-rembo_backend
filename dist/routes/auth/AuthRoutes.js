@@ -15,5 +15,6 @@ AuthRouter.post("/logout", auth_controller_1.logout);
 AuthRouter.post("/logout-all", authMiddleware_1.authenticate, auth_controller_1.logoutAll);
 AuthRouter.get("/me", authMiddleware_1.authenticate, auth_controller_1.me);
 AuthRouter.patch("/change-password", authMiddleware_1.authenticate, (0, validateDto_1.validateDto)(chnagePasswddto_1.ChangePasswordDto), auth_controller_1.changeMyPassword);
+AuthRouter.post("/switch-company", authMiddleware_1.authenticate, auth_controller_1.switchCompany);
 exports.default = AuthRouter;
 //# sourceMappingURL=AuthRoutes.js.map

@@ -20,7 +20,10 @@ const refreshCookieOptions = {
 };
 
 export const login = asyncHandler(async (req, res: Response) => {
-  const { accessToken, refreshToken, user, company } = await authService.login(req.body, auditContext(req));
+  const { accessToken, refreshToken, user, company } = await authService.login(
+    req.body,
+    auditContext(req),
+  );
 
   res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
   res.status(200).json({
@@ -66,7 +69,7 @@ export const me = asyncHandler(async (req, res: Response) => {
 });
 
 export const changeMyPassword = asyncHandler(async (req, res: Response) => {
-  await userService.changeOwnPassword(req.user!.id, req.body);
+  await userService.changeOwnPassword(auditContext(req), req.body);
   res
     .status(200)
     .json({ success: true, message: "Password updated successfully" });
@@ -76,13 +79,17 @@ export const changeMyPassword = asyncHandler(async (req, res: Response) => {
 export const switchCompany = asyncHandler(async (req, res: Response) => {
   const parsed = switchCompanySchema.safeParse(req.body);
   if (!parsed.success) throw new ApiError(400, "A valid companyId is required");
- 
-  const raw = req.cookies?.refreshToken; // TODO: your refresh cookie name
-  const result = await authService.switchCompany(raw, parsed.data.companyId, auditContext(req));
- 
-  // TODO: set the refresh cookie exactly like your login controller does
-  res.cookie("refreshToken", result.refreshToken, /* your existing cookie options */ {});
- 
+
+  const raw = req.cookies?.[REFRESH_COOKIE_NAME];
+  if (!raw) throw new ApiError(401, "Please sign in again");
+
+  const result = await authService.switchCompany(
+    raw,
+    parsed.data.companyId,
+    auditContext(req),
+  );
+
+  res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
   res.status(200).json({
     success: true,
     data: { accessToken: result.accessToken, company: result.company },

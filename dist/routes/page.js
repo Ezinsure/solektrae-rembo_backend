@@ -10,6 +10,8 @@ const ServiceRoutes_1 = __importDefault(require("./services/ServiceRoutes"));
 const CustomerRoute_1 = __importDefault(require("./customers/CustomerRoute"));
 const AuthRoutes_1 = __importDefault(require("./auth/AuthRoutes"));
 const activityLogRouter_1 = __importDefault(require("./logs/activityLogRouter"));
+const CompanyRoutes_1 = __importDefault(require("./company/CompanyRoutes"));
+const rolesRoutes_1 = __importDefault(require("./roles/rolesRoutes"));
 const routes = (0, express_1.Router)();
 routes.use("/admin", SetUpRoutes_1.default);
 routes.use("/auth", AuthRoutes_1.default);
@@ -17,5 +19,7 @@ routes.use("/users", userRoutes_1.default);
 routes.use("/services", ServiceRoutes_1.default);
 routes.use("/customers", CustomerRoute_1.default);
 routes.use("/logs", activityLogRouter_1.default);
+routes.use("/companies", CompanyRoutes_1.default);
+routes.use("/roles", rolesRoutes_1.default);
 exports.default = routes;
 //# sourceMappingURL=page.js.map

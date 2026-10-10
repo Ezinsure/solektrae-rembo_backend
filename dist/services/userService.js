@@ -11,6 +11,8 @@ const RefreshToken_1 = require("../entities/RefreshToken");
 const ActivityLog_1 = require("../entities/ActivityLog");
 const diff_1 = require("../utils/diff");
 const activityLog_1 = require("./activityLog");
+const CompanyMember_1 = require("../entities/CompanyMember");
+const imageService_1 = require("./imageService");
 // Readable names shown in the log's "Changes" list
 const USER_LABELS = {
     names: "Name",
@@ -94,30 +96,42 @@ class UserService {
         if (existing) {
             throw new apiError_1.ApiError(409, "A user with this email already exists");
         }
+        const companyId = ctx.companyId;
+        if (!companyId) {
+            throw new apiError_1.ApiError(403, "No company selected. Please sign in again.");
+        }
         const author = ctx.actorId ? { id: ctx.actorId } : null;
-        const user = this.repo.create({
-            names: dto.names,
-            email,
-            password: await (0, password_1.hashPassword)(dto.password),
-            role: dto.role,
-            phoneNumber: dto.phoneNumber,
-            profileImage: dto.profileImage ?? null,
-            mustChangePassword: true,
-            createdBy: author,
-            updatedBy: author,
-        });
-        const saved = await this.repo.save(user);
-        await activityLog_1.activityLogService.log(ctx, {
-            action: ActivityLog_1.LogAction.CREATE,
-            entity: ActivityLog_1.LogEntity.USER,
-            entityId: saved.id,
-            summary: `Created user ${saved.names} (${saved.role})`,
+        const passwordHash = await (0, password_1.hashPassword)(dto.password);
+        const saved = await this.repo.manager.transaction(async (manager) => {
+            const user = await manager.save(manager.create(User_1.User, {
+                names: dto.names,
+                email,
+                password: passwordHash,
+                role: dto.role,
+                phoneNumber: dto.phoneNumber,
+                profileImage: dto.profileImage ?? null,
+                mustChangePassword: true,
+                createdBy: author,
+                updatedBy: author,
+            }));
+            await manager.save(manager.create(CompanyMember_1.CompanyMember, {
+                companyId,
+                userId: user.id,
+                role: user.role,
+            }));
+            await activityLog_1.activityLogService.log(ctx, {
+                action: ActivityLog_1.LogAction.CREATE,
+                entity: ActivityLog_1.LogEntity.USER,
+                entityId: user.id,
+                summary: `Created user ${user.names} (${user.role})`,
+            }, manager);
+            return user;
         });
         return this.findById(saved.id);
     }
     async update(id, dto, ctx) {
         const user = await this.findEntityById(id);
-        const before = { ...user }; // snapshot for the log's "Changes"
+        const before = { ...user };
         const email = dto.email?.trim().toLowerCase();
         if (email && email !== user.email) {
             const existing = await this.repo.findOne({
@@ -146,9 +160,12 @@ class UserService {
             user.profileImage = dto.profileImage;
         if (dto.isActive !== undefined)
             user.isActive = dto.isActive;
-        const changes = (0, diff_1.diff)(before, user, { only: [...USER_TRACKED], labels: USER_LABELS });
+        const changes = (0, diff_1.diff)(before, user, {
+            only: [...USER_TRACKED],
+            labels: USER_LABELS,
+        });
         if (changes.length === 0)
-            return this.findById(user.id); // nothing changed: no save, no log
+            return this.findById(user.id);
         user.updatedById = ctx.actorId;
         user.updatedBy = ctx.actorId ? { id: ctx.actorId } : null;
         await this.repo.save(user);
@@ -281,10 +298,43 @@ class UserService {
         const targetIsCountedAdmin = await this.repo.findOne({
             where: { id: excludingUserId, role: User_1.UserRole.ADMIN, isActive: true },
         });
-        const countExcludingTarget = targetIsCountedAdmin ? remainingAdmins - 1 : remainingAdmins;
+        const countExcludingTarget = targetIsCountedAdmin
+            ? remainingAdmins - 1
+            : remainingAdmins;
         if (countExcludingTarget < 1) {
             throw new apiError_1.ApiError(409, "Cannot proceed: this is the last active admin account. Promote another user to admin first.");
         }
+    }
+    // images upload
+    async setAvatar(userId, file, ctx) {
+        const user = await this.findEntityById(userId);
+        const result = await (0, imageService_1.uploadImage)(file.buffer, (0, imageService_1.imagePath)("users", userId, "avatar"));
+        user.profileImage = result.secure_url;
+        user.updatedById = ctx.actorId;
+        await this.repo.save(user);
+        await activityLog_1.activityLogService.log(ctx, {
+            action: ActivityLog_1.LogAction.UPDATE,
+            entity: ActivityLog_1.LogEntity.USER,
+            entityId: userId,
+            summary: "Updated profile photo",
+        });
+        return { profileImage: user.profileImage };
+    }
+    async removeAvatar(userId, ctx) {
+        const user = await this.findEntityById(userId);
+        if (!user.profileImage)
+            return { profileImage: null };
+        await (0, imageService_1.deleteImage)((0, imageService_1.imagePath)("users", userId, "avatar"));
+        user.profileImage = null;
+        user.updatedById = ctx.actorId;
+        await this.repo.save(user);
+        await activityLog_1.activityLogService.log(ctx, {
+            action: ActivityLog_1.LogAction.UPDATE,
+            entity: ActivityLog_1.LogEntity.USER,
+            entityId: userId,
+            summary: "Removed profile photo",
+        });
+        return { profileImage: null };
     }
 }
 exports.UserService = UserService;

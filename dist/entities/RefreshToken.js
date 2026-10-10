@@ -22,6 +22,7 @@ let RefreshToken = class RefreshToken {
     userAgent;
     ipAddress;
     createdAt;
+    companyId;
 };
 exports.RefreshToken = RefreshToken;
 __decorate([
@@ -62,6 +63,10 @@ __decorate([
     (0, typeorm_1.CreateDateColumn)({ type: "timestamptz" }),
     __metadata("design:type", Date)
 ], RefreshToken.prototype, "createdAt", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", Object)
+], RefreshToken.prototype, "companyId", void 0);
 exports.RefreshToken = RefreshToken = __decorate([
     (0, typeorm_1.Entity)("refresh_tokens")
 ], RefreshToken);
