@@ -74,3 +74,23 @@ export const adminResetPassword = asyncHandler(async (req, res: Response) => {
     .status(200)
     .json({ success: true, message: "Password reset successfully" });
 });
+
+export const uploadMyAvatar = asyncHandler(async (req, res: Response) => {
+  const data = await userService.setAvatar(
+    req.user!.id,
+    req.file,
+    auditContext(req),
+  );
+  res
+    .status(200)
+    .json({ success: true, message: "Profile photo updated", data });
+});
+
+export const removeMyAvatar = asyncHandler(async (req, res: Response) => {
+  const data = await userService.removeAvatar(req.user!.id, auditContext(req));
+  res.status(200).json({
+    success: true,
+    message: "Profile photo removed",
+    data,
+  });
+});

@@ -6,6 +6,7 @@ import {
   logoutAll,
   me,
   changeMyPassword,
+  switchCompany,
 } from "../../controllers/auth.controller";
 import { authenticate } from "../../middleware/authMiddleware";
 import { validateDto } from "../../middleware/validateDto";
@@ -28,4 +29,5 @@ AuthRouter.patch(
   validateDto(ChangePasswordDto),
   changeMyPassword,
 );
+AuthRouter.post("/switch-company", authenticate, switchCompany)
 export default AuthRouter;

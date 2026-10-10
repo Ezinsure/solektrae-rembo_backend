@@ -14,6 +14,8 @@ import { AuditContext } from "../utils/auditContext";
 import { LogAction, LogEntity } from "../entities/ActivityLog";
 import { diff } from "../utils/diff";
 import { activityLogService } from "./activityLog";
+import { CompanyMember } from "../entities/CompanyMember";
+import { deleteImage, imagePath, uploadImage } from "./imageService";
 
 // Readable names shown in the log's "Changes" list
 const USER_LABELS = {
@@ -103,7 +105,10 @@ export class UserService {
     return user;
   }
 
-  async create(dto: CreateUserDto, ctx: AuditContext): Promise<UserResponseDto> {
+  async create(
+    dto: CreateUserDto,
+    ctx: AuditContext,
+  ): Promise<UserResponseDto> {
     const email = dto.email.trim().toLowerCase();
 
     const existing = await this.repo.findOne({
@@ -114,33 +119,60 @@ export class UserService {
       throw new ApiError(409, "A user with this email already exists");
     }
 
-    const author = ctx.actorId ? ({ id: ctx.actorId } as User) : null;
-    const user = this.repo.create({
-      names: dto.names,
-      email,
-      password: await hashPassword(dto.password),
-      role: dto.role,
-      phoneNumber: dto.phoneNumber,
-      profileImage: dto.profileImage ?? null,
-      mustChangePassword: true,
-      createdBy: author,
-      updatedBy: author,
-    });
-    const saved = await this.repo.save(user);
+    const companyId = ctx.companyId;
+    if (!companyId) {
+      throw new ApiError(403, "No company selected. Please sign in again.");
+    }
 
-    await activityLogService.log(ctx, {
-      action: LogAction.CREATE,
-      entity: LogEntity.USER,
-      entityId: saved.id,
-      summary: `Created user ${saved.names} (${saved.role})`,
+    const author = ctx.actorId ? ({ id: ctx.actorId } as User) : null;
+    const passwordHash = await hashPassword(dto.password);
+
+    const saved = await this.repo.manager.transaction(async (manager) => {
+      const user = await manager.save(
+        manager.create(User, {
+          names: dto.names,
+          email,
+          password: passwordHash,
+          role: dto.role,
+          phoneNumber: dto.phoneNumber,
+          profileImage: dto.profileImage ?? null,
+          mustChangePassword: true,
+          createdBy: author,
+          updatedBy: author,
+        }),
+      );
+
+      await manager.save(
+        manager.create(CompanyMember, {
+          companyId,
+          userId: user.id,
+          role: user.role,
+        }),
+      );
+      await activityLogService.log(
+        ctx,
+        {
+          action: LogAction.CREATE,
+          entity: LogEntity.USER,
+          entityId: user.id,
+          summary: `Created user ${user.names} (${user.role})`,
+        },
+        manager,
+      );
+
+      return user;
     });
 
     return this.findById(saved.id);
   }
 
-  async update(id: string, dto: UpdateUserDto, ctx: AuditContext): Promise<UserResponseDto> {
+  async update(
+    id: string,
+    dto: UpdateUserDto,
+    ctx: AuditContext,
+  ): Promise<UserResponseDto> {
     const user = await this.findEntityById(id);
-    const before = { ...user }; // snapshot for the log's "Changes"
+    const before = { ...user };
 
     const email = dto.email?.trim().toLowerCase();
     if (email && email !== user.email) {
@@ -148,11 +180,13 @@ export class UserService {
         where: { email },
         withDeleted: true,
       });
-      if (existing) throw new ApiError(409, "A user with this email already exists");
+      if (existing)
+        throw new ApiError(409, "A user with this email already exists");
     }
 
     // Guard: don't let the last remaining admin be demoted or deactivated.
-    const demoting = dto.role && dto.role !== UserRole.ADMIN && user.role === UserRole.ADMIN;
+    const demoting =
+      dto.role && dto.role !== UserRole.ADMIN && user.role === UserRole.ADMIN;
     const deactivating = dto.isActive === false && user.role === UserRole.ADMIN;
     if (demoting || deactivating) {
       await this.assertNotLastActiveAdmin(user.id);
@@ -166,8 +200,11 @@ export class UserService {
     if (dto.profileImage !== undefined) user.profileImage = dto.profileImage;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
 
-    const changes = diff(before, user, { only: [...USER_TRACKED], labels: USER_LABELS });
-    if (changes.length === 0) return this.findById(user.id); // nothing changed: no save, no log
+    const changes = diff(before, user, {
+      only: [...USER_TRACKED],
+      labels: USER_LABELS,
+    });
+    if (changes.length === 0) return this.findById(user.id);
 
     user.updatedById = ctx.actorId;
     user.updatedBy = ctx.actorId ? ({ id: ctx.actorId } as User) : null;
@@ -197,7 +234,11 @@ export class UserService {
       await manager.update(User, id, { deletedById: ctx.actorId });
       await manager.softDelete(User, id);
       // Log the user out everywhere
-      await manager.update(RefreshToken, { userId: id, revokedAt: IsNull() }, { revokedAt: new Date() });
+      await manager.update(
+        RefreshToken,
+        { userId: id, revokedAt: IsNull() },
+        { revokedAt: new Date() },
+      );
       await activityLogService.log(
         ctx,
         {
@@ -237,7 +278,10 @@ export class UserService {
     return this.findById(id);
   }
 
-  async changeOwnPassword(ctx: AuditContext, dto: ChangePasswordDto): Promise<void> {
+  async changeOwnPassword(
+    ctx: AuditContext,
+    dto: ChangePasswordDto,
+  ): Promise<void> {
     if (!ctx.actorId) throw new ApiError(401, "Authentication required");
 
     const user = await this.repo
@@ -266,7 +310,11 @@ export class UserService {
     });
   }
 
-  async adminResetPassword(id: string, dto: AdminResetPasswordDto, ctx: AuditContext): Promise<void> {
+  async adminResetPassword(
+    id: string,
+    dto: AdminResetPasswordDto,
+    ctx: AuditContext,
+  ): Promise<void> {
     const user = await this.findEntityById(id);
     user.password = await hashPassword(dto.newPassword);
     user.mustChangePassword = true;
@@ -296,7 +344,11 @@ export class UserService {
     });
   }
 
-  async setActive(id: string, isActive: boolean, ctx: AuditContext): Promise<UserResponseDto> {
+  async setActive(
+    id: string,
+    isActive: boolean,
+    ctx: AuditContext,
+  ): Promise<UserResponseDto> {
     const user = await this.findEntityById(id);
     if (user.isActive === isActive) return this.findById(id); // already in that state
 
@@ -312,7 +364,11 @@ export class UserService {
       await manager.save(user);
       // A deactivated user shouldn't stay signed in
       if (!isActive) {
-        await manager.update(RefreshToken, { userId: id, revokedAt: IsNull() }, { revokedAt: new Date() });
+        await manager.update(
+          RefreshToken,
+          { userId: id, revokedAt: IsNull() },
+          { revokedAt: new Date() },
+        );
       }
       await activityLogService.log(
         ctx,
@@ -331,14 +387,18 @@ export class UserService {
   }
 
   // Prevents a scenario where every admin gets deactivated/demoted/deleted
-  private async assertNotLastActiveAdmin(excludingUserId: string): Promise<void> {
+  private async assertNotLastActiveAdmin(
+    excludingUserId: string,
+  ): Promise<void> {
     const remainingAdmins = await this.repo.count({
       where: { role: UserRole.ADMIN, isActive: true },
     });
     const targetIsCountedAdmin = await this.repo.findOne({
       where: { id: excludingUserId, role: UserRole.ADMIN, isActive: true },
     });
-    const countExcludingTarget = targetIsCountedAdmin ? remainingAdmins - 1 : remainingAdmins;
+    const countExcludingTarget = targetIsCountedAdmin
+      ? remainingAdmins - 1
+      : remainingAdmins;
 
     if (countExcludingTarget < 1) {
       throw new ApiError(
@@ -347,5 +407,42 @@ export class UserService {
       );
     }
   }
+// images upload
+async setAvatar(userId: string, file: any, ctx: AuditContext) {
+  const user = await this.findEntityById(userId);
+  const result = await uploadImage(file.buffer, imagePath("users", userId, "avatar"));
+
+  user.profileImage = result.secure_url;
+  user.updatedById = ctx.actorId;
+  await this.repo.save(user);
+
+  await activityLogService.log(ctx, {
+    action: LogAction.UPDATE,
+    entity: LogEntity.USER,
+    entityId: userId,
+    summary: "Updated profile photo",
+  });
+
+  return { profileImage: user.profileImage };
+}
+
+async removeAvatar(userId: string, ctx: AuditContext) {
+  const user = await this.findEntityById(userId);
+  if (!user.profileImage) return { profileImage: null };
+
+  await deleteImage(imagePath("users", userId, "avatar"));
+  user.profileImage = null;
+  user.updatedById = ctx.actorId;
+  await this.repo.save(user);
+
+  await activityLogService.log(ctx, {
+    action: LogAction.UPDATE,
+    entity: LogEntity.USER,
+    entityId: userId,
+    summary: "Removed profile photo",
+  });
+
+  return { profileImage: null };
+}
 }
 export const userService = new UserService();

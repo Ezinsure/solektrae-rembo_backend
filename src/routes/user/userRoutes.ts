@@ -8,13 +8,17 @@ import {
   deleteUser,
   getUserById,
   getUsers,
+  removeMyAvatar,
   restoreUser,
   toggleUserActive,
   updateUser,
+  uploadMyAvatar,
 } from "../../controllers/user.controller";
 import { authorize } from "../../middleware/roleMiddleware";
 import { authenticate } from "../../middleware/authMiddleware";
 import { AdminResetPasswordDto } from "../../dtos/users/resetPsswddto";
+import { singleImage } from "../../middleware/uploadImage";
+import { assignUserRole } from "../../controllers/rolesControllers";
 
 const UserRouter = Router();
 
@@ -27,6 +31,13 @@ UserRouter.post(
   createUser,
 );
 UserRouter.get("/", authenticate, getUsers);
+UserRouter.post(
+  "/me/avatar",
+  authenticate,
+  singleImage("image"),
+  uploadMyAvatar,
+);
+UserRouter.delete("/me/avatar", authenticate, removeMyAvatar);
 UserRouter.get("/:id", getUserById);
 UserRouter.patch(
   "/:id",
@@ -50,4 +61,11 @@ UserRouter.patch(
   validateDto(AdminResetPasswordDto),
   adminResetPassword,
 );
+UserRouter.patch(
+  "/:id/role",
+  authenticate,
+  authorize(UserRole.ADMIN, UserRole.DEV),
+  assignUserRole,
+);
+
 export default UserRouter;
