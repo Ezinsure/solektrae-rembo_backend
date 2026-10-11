@@ -15,20 +15,15 @@ exports.getUsers = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     const query = (0, class_transformer_1.plainToInstance)(userdto_1.UserQueryDto, req.query);
     const errors = await (0, class_validator_1.validate)(query);
     if (errors.length > 0) {
-        return res.status(400).json({
-            success: false,
-            message: "Invalid query parameters",
-            errors,
-        });
+        return res
+            .status(400)
+            .json({ success: false, message: "Invalid query parameters", errors });
     }
-    const result = await userService_1.userService.findAll(query);
-    res.status(200).json({
-        success: true,
-        ...result,
-    });
+    const result = await userService_1.userService.findAll(query, (0, auditContext_1.requireCompanyId)(req));
+    res.status(200).json({ success: true, ...result });
 });
 exports.getUserById = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.findById(req.params.id);
+    const user = await userService_1.userService.findById(req.params.id, (0, auditContext_1.requireCompanyId)(req));
     res.status(200).json({ success: true, data: user });
 });
 exports.updateUser = (0, asyncHandle_1.asyncHandler)(async (req, res) => {

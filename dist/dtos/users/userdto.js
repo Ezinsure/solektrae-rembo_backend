@@ -17,9 +17,10 @@ class CreateUserDto {
     names;
     email;
     password;
-    role;
     phoneNumber;
     profileImage;
+    roleId;
+    role;
 }
 exports.CreateUserDto = CreateUserDto;
 __decorate([
@@ -41,10 +42,6 @@ __decorate([
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "password", void 0);
 __decorate([
-    (0, class_validator_1.IsEnum)(User_1.UserRole),
-    __metadata("design:type", String)
-], CreateUserDto.prototype, "role", void 0);
-__decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(20),
     __metadata("design:type", String)
@@ -54,11 +51,22 @@ __decorate([
     (0, class_validator_1.IsString)(),
     __metadata("design:type", String)
 ], CreateUserDto.prototype, "profileImage", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "roleId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsIn)([User_1.UserRole.ADMIN, User_1.UserRole.HR, User_1.UserRole.STAFF, User_1.UserRole.USER]),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "role", void 0);
 // update user dto
 class UpdateUserDto {
     names;
     email;
     role;
+    roleId;
     phoneNumber;
     profileImage;
     isActive;
@@ -82,6 +90,11 @@ __decorate([
 ], UpdateUserDto.prototype, "role", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], UpdateUserDto.prototype, "roleId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.MaxLength)(20),
     __metadata("design:type", String)
@@ -100,6 +113,7 @@ class UserQueryDto {
     search;
     role;
     isActive;
+    roleId;
     page = 1;
     limit = 20;
 }
@@ -122,6 +136,11 @@ __decorate([
 ], UserQueryDto.prototype, "isActive", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], UserQueryDto.prototype, "roleId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_transformer_1.Type)(() => Number),
     (0, class_validator_1.IsInt)(),
     (0, class_validator_1.Min)(1),
@@ -140,6 +159,8 @@ class UserResponseDto {
     names;
     email;
     role;
+    roleId;
+    roleName;
     phoneNumber;
     profileImage;
     isActive;
@@ -150,15 +171,18 @@ class UserResponseDto {
     updatedBy;
     deletedAt;
     deletedBy;
-    static fromEntity(user) {
+    // member is optional: without it (e.g. GET /auth/me) you get the plain profile
+    static fromEntity(user, member) {
         const dto = new UserResponseDto();
         dto.id = user.id;
         dto.names = user.names;
         dto.email = user.email;
-        dto.role = user.role;
+        dto.role = member?.role ?? user.role;
+        dto.roleId = member?.roleId ?? null;
+        dto.roleName = member?.assignedRole?.name ?? null;
         dto.phoneNumber = user.phoneNumber;
         dto.profileImage = user.profileImage;
-        dto.isActive = user.isActive;
+        dto.isActive = member ? member.isActive && user.isActive : user.isActive;
         dto.mustChangePassword = user.mustChangePassword;
         dto.createdAt = user.createdAt;
         dto.createdBy = UserResponseDto.toAuditUser(user.createdBy);
@@ -169,7 +193,7 @@ class UserResponseDto {
         return dto;
     }
     static fromEntities(users) {
-        return users.map(UserResponseDto.fromEntity);
+        return users.map((u) => UserResponseDto.fromEntity(u));
     }
     static toAuditUser(related) {
         return related ? { id: related.id, names: related.names } : null;

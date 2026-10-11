@@ -4,7 +4,7 @@ import { asyncHandler } from "../utils/asyncHandle";
 import { plainToInstance } from "class-transformer";
 import { UserQueryDto } from "../dtos/users/userdto";
 import { validate } from "class-validator";
-import { auditContext } from "../utils/auditContext";
+import { auditContext, requireCompanyId } from "../utils/auditContext";
 
 export const createUser = asyncHandler(async (req, res: Response) => {
   const user = await userService.create(req.body, auditContext(req));
@@ -15,21 +15,19 @@ export const getUsers = asyncHandler(async (req, res: Response) => {
   const query = plainToInstance(UserQueryDto, req.query);
   const errors = await validate(query);
   if (errors.length > 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid query parameters",
-      errors,
-    });
+    return res
+      .status(400)
+      .json({ success: false, message: "Invalid query parameters", errors });
   }
-  const result = await userService.findAll(query);
-  res.status(200).json({
-    success: true,
-    ...result,
-  });
+  const result = await userService.findAll(query, requireCompanyId(req));
+  res.status(200).json({ success: true, ...result });
 });
 
 export const getUserById = asyncHandler(async (req, res: Response) => {
-  const user = await userService.findById(req.params.id as any);
+  const user = await userService.findById(
+    req.params.id as any,
+    requireCompanyId(req),
+  );
   res.status(200).json({ success: true, data: user });
 });
 

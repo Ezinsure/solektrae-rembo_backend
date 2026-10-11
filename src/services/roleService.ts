@@ -159,28 +159,39 @@ class RoleService {
     roleId: string,
     ctx: AuditContext,
   ) {
-    if (userId === ctx.actorId)
-      throw new ApiError(400, "You can't change your own role");
-
     const role = await this.findOrFail(companyId, roleId);
-    if (role.baseRole === UserRole.DEV)
-      throw new ApiError(403, "The Developer role can't be assigned here");
 
     const member = await this.members.findOne({ where: { companyId, userId } });
     if (!member) throw new ApiError(404, "This user is not in your account");
-    if (member.roleId === role.id)
+
+    // Only devs can give the Dev role
+    if (role.baseRole === UserRole.DEV && ctx.actorRole !== UserRole.DEV) {
+      throw new ApiError(403, "Only a developer can assign the Dev role");
+    }
+
+    // Only devs can change a dev's role
+    if (member.role === UserRole.DEV && ctx.actorRole !== UserRole.DEV) {
+      throw new ApiError(403, "Only a developer can change this user's role");
+    }
+
+    if (member.roleId === role.id) {
       return { roleId: role.id, roleName: role.name };
+    }
 
     const previous = member.roleId
       ? await this.repo.findOneBy({ id: member.roleId })
       : null;
 
+    const isSelf = userId === ctx.actorId;
+
     await AppDataSource.transaction(async (manager) => {
+      // Never leave the company without an active admin
       if (member.role === UserRole.ADMIN && role.baseRole !== UserRole.ADMIN) {
         await this.assertAdminRemains(manager, companyId, {
           excludeUserId: userId,
         });
       }
+
       await manager.update(
         CompanyMember,
         { id: member.id },
@@ -193,7 +204,9 @@ class RoleService {
           action: LogAction.UPDATE,
           entity: LogEntity.USER,
           entityId: userId,
-          summary: `Changed role to "${role.name}"`,
+          summary: isSelf
+            ? `Changed own role to "${role.name}"`
+            : `Changed role to "${role.name}"`,
           changes: [
             {
               field: "Role",
@@ -205,6 +218,7 @@ class RoleService {
         manager,
       );
     });
+
     return { roleId: role.id, roleName: role.name };
   }
 
@@ -231,7 +245,7 @@ class RoleService {
   }
 
   private async findOrFail(companyId: string, id: string) {
-    const role = await this.repo.findOneBy({ id, companyId }); 
+    const role = await this.repo.findOneBy({ id, companyId });
     if (!role) throw new ApiError(404, "Role not found");
     return role;
   }
