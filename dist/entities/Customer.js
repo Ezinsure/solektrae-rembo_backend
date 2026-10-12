@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Customer = exports.CustomerStatus = void 0;
 const typeorm_1 = require("typeorm");
 const User_1 = require("./User");
+const Company_1 = require("./Company");
+const Service_1 = require("./Service");
 var CustomerStatus;
 (function (CustomerStatus) {
     CustomerStatus["PENDING"] = "pending";
@@ -20,9 +22,14 @@ var CustomerStatus;
 })(CustomerStatus || (exports.CustomerStatus = CustomerStatus = {}));
 let Customer = class Customer {
     id;
+    companyId;
+    company;
     names;
     email;
     phoneNumber;
+    serviceId;
+    serviceRef;
+    //  for "Other services"
     service;
     height;
     hovName;
@@ -47,6 +54,15 @@ __decorate([
     __metadata("design:type", String)
 ], Customer.prototype, "id", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ type: "uuid" }),
+    __metadata("design:type", String)
+], Customer.prototype, "companyId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Company_1.Company, { onDelete: "RESTRICT" }),
+    (0, typeorm_1.JoinColumn)({ name: "companyId" }),
+    __metadata("design:type", Company_1.Company)
+], Customer.prototype, "company", void 0);
+__decorate([
     (0, typeorm_1.Column)({ type: "varchar" }),
     __metadata("design:type", String)
 ], Customer.prototype, "names", void 0);
@@ -59,8 +75,17 @@ __decorate([
     __metadata("design:type", String)
 ], Customer.prototype, "phoneNumber", void 0);
 __decorate([
-    (0, typeorm_1.Column)({ type: "varchar" }),
-    __metadata("design:type", String)
+    (0, typeorm_1.Column)({ type: "uuid", nullable: true }),
+    __metadata("design:type", Object)
+], Customer.prototype, "serviceId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => Service_1.Service, { nullable: true, onDelete: "SET NULL" }),
+    (0, typeorm_1.JoinColumn)({ name: "serviceId" }),
+    __metadata("design:type", Object)
+], Customer.prototype, "serviceRef", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "varchar", nullable: true }),
+    __metadata("design:type", Object)
 ], Customer.prototype, "service", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "varchar", nullable: true }),
@@ -132,6 +157,9 @@ __decorate([
     __metadata("design:type", Object)
 ], Customer.prototype, "updatedBy", void 0);
 exports.Customer = Customer = __decorate([
-    (0, typeorm_1.Entity)("customers")
+    (0, typeorm_1.Entity)("customers"),
+    (0, typeorm_1.Index)(["companyId", "createdAt"]),
+    (0, typeorm_1.Index)(["companyId", "serviceId"]),
+    (0, typeorm_1.Index)(["companyId", "status"])
 ], Customer);
 //# sourceMappingURL=Customer.js.map

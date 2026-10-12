@@ -16,9 +16,9 @@ exports.AppDataSource = new typeorm_1.DataSource({
     username: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
-    ssl: {
-        rejectUnauthorized: false,
-    },
+    // ssl: {
+    //   rejectUnauthorized: false,
+    // },
     synchronize: false,
     logging: true,
     entities: [path_1.default.join(__dirname, "..", "entities", "**/*.{ts,js}")],
