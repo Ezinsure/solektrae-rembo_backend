@@ -1,117 +1,57 @@
-import { Type } from "class-transformer";
-import {
-  IsEnum,
-  IsInt,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  Max,
-  Min,
-} from "class-validator";
+import { z } from "zod";
+import { FIELD_KEYS } from "../../constants/serviceFields";
 import { CustomerStatus } from "../../entities/Customer";
-export class CreateCustomerDto {
-  @IsString()
-  @IsNotEmpty()
-  names: string;
 
-  @IsString()
-  @IsNotEmpty()
-  email: string;
+// Catalog fields arrive as text (numbers are turned into text)
+const textField = z.preprocess(
+  (v) => (v === null || v === undefined ? v : String(v)),
+  z.string().trim().max(150).nullable().optional(),
+);
 
-  @IsString()
-  @IsNotEmpty()
-  phoneNumber: string;
+const catalogShape = Object.fromEntries(FIELD_KEYS.map((k) => [k, textField]));
 
-  @IsString()
-  @IsNotEmpty()
-  service: string;
+// Same body for applying (public) and editing
+export const customerFormSchema = z.object({
+  names: z.string().trim().min(2, "Enter full names").max(150),
+  email: z.string().trim().toLowerCase().email("Enter a valid email").max(150),
+  phoneNumber: z
+    .string()
+    .trim()
+    .regex(/^\+\d{8,15}$/, "Enter a valid phone number"),
+  serviceId: z.string().uuid("Please choose a service"),
+  customServiceName: z.string().trim().max(150).nullable().optional(),
+  ...catalogShape,
+});
 
-  @IsString()
-  @IsOptional()
-  height?: string;
+export const customerQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(10),
+  search: z.string().trim().max(100).optional(),
+  status: z.nativeEnum(CustomerStatus).optional(),
+  serviceId: z.string().uuid().optional(),
+  updatedById: z.string().uuid().optional(),
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
 
-  @IsString()
-  @IsOptional()
-  hovName?: string;
+export const customerExportSchema = customerQuerySchema.omit({
+  page: true,
+  limit: true,
+});
 
-  @IsString()
-  @IsOptional()
-  hovNumber?: string;
+export const customerStatusSchema = z.object({
+  status: z
+    .nativeEnum(CustomerStatus)
+    .refine((s) => s !== CustomerStatus.PENDING, {
+      message: "A customer can't be set back to pending",
+    }),
+});
 
-  @IsString()
-  @IsOptional()
-  fatherName?: string;
-
-  @IsString()
-  @IsOptional()
-  motherName?: string;
-
-  @IsString()
-  @IsOptional()
-  spouseName?: string;
-
-  @IsString()
-  @IsOptional()
-  district?: string;
-
-  @IsString()
-  @IsOptional()
-  sector?: string;
-
-  @IsString()
-  @IsOptional()
-  cell?: string;
-
-  @IsString()
-  @IsOptional()
-  street?: string;
-
-  @IsString()
-  @IsOptional()
-  village?: string;
-}
-
-export class UpdateCustomerDto {
-  @IsOptional() @IsString() names?: string;
-  @IsOptional() @IsString() email?: string;
-  @IsOptional() @IsString() phoneNumber?: string;
-  @IsOptional() @IsString() service?: string;
-  @IsOptional() @IsString() height?: string;
-  @IsOptional() @IsString() hovName?: string;
-  @IsOptional() @IsString() hovNumber?: string;
-  @IsOptional() @IsString() district?: string;
-  @IsOptional() @IsString() sector?: string;
-  @IsOptional() @IsString() cell?: string;
-  @IsOptional() @IsString() village?: string;
-  @IsOptional() @IsString() street?: string;
-  @IsOptional() @IsString() motherName?: string;
-  @IsOptional() @IsString() fatherName?: string;
-  @IsOptional() @IsString() spouseName?: string;
-}
-export class UpdateCustomerStatusDto {
-  @IsEnum(CustomerStatus)
-  status: CustomerStatus;
-}
-
-export class CustomerQueryDto {
-  @IsOptional()
-  @IsString()
-  search?: string;
-
-  @IsOptional()
-  @IsEnum(CustomerStatus)
-  status?: CustomerStatus;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit: number = 20;
-}
+export const uuidParam = z.string().uuid("Invalid id");
+export const slugParam = z.string().trim().min(1).max(80);

@@ -7,8 +7,11 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   DeleteDateColumn,
+  Index,
 } from "typeorm";
 import { User } from "./User";
+import { Company } from "./Company";
+import { Service } from "./Service";
 
 export enum CustomerStatus {
   PENDING = "pending",
@@ -17,9 +20,19 @@ export enum CustomerStatus {
 }
 
 @Entity("customers")
+@Index(["companyId", "createdAt"])
+@Index(["companyId", "serviceId"])
+@Index(["companyId", "status"])
 export class Customer {
   @PrimaryGeneratedColumn("uuid")
   id: string;
+
+  @Column({ type: "uuid" })
+  companyId: string;
+
+  @ManyToOne(() => Company, { onDelete: "RESTRICT" })
+  @JoinColumn({ name: "companyId" })
+  company: Company;
 
   @Column({ type: "varchar" })
   names: string;
@@ -30,8 +43,16 @@ export class Customer {
   @Column({ type: "varchar" })
   phoneNumber: string;
 
-  @Column({ type: "varchar" })
-  service: string;
+  @Column({ type: "uuid", nullable: true })
+  serviceId: string | null;
+
+  @ManyToOne(() => Service, { nullable: true, onDelete: "SET NULL" })
+  @JoinColumn({ name: "serviceId" })
+  serviceRef: Service | null;
+
+  //  for "Other services"
+  @Column({ type: "varchar", nullable: true })
+  service: string | null;
 
   @Column({ type: "varchar", nullable: true })
   height: string | null;
