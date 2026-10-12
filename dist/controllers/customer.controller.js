@@ -33,10 +33,7 @@ exports.updateCustomer = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
 });
 exports.updateCustomerStatus = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     const customer = await customerService_1.customerService.updateStatus(req.params.id, req.body.status, req.user.id);
-    res.status(200).json({
-        success: true,
-        data: customer,
-    });
+    res.status(200).json({ success: true, data: customer });
 });
 exports.deleteCustomer = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     await customerService_1.customerService.softDelete(req.params.id);

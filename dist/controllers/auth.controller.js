@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.changeMyPassword = exports.me = exports.logoutAll = exports.logout = exports.refresh = exports.login = void 0;
+exports.switchCompany = exports.changeMyPassword = exports.me = exports.logoutAll = exports.logout = exports.refresh = exports.login = void 0;
 const authService_1 = require("../services/authService");
 const userService_1 = require("../services/userService");
 const asyncHandle_1 = require("../utils/asyncHandle");
 const apiError_1 = require("../utils/apiError");
 const auditContext_1 = require("../utils/auditContext");
+const companyDto_1 = require("../dtos/company/companyDto");
 const REFRESH_COOKIE_NAME = "refreshToken";
 const isProduction = process.env.NODE_ENV === "production";
 const refreshCookieOptions = {
@@ -16,11 +17,11 @@ const refreshCookieOptions = {
     maxAge: Number(process.env.REFRESH_TOKEN_EXPIRES_DAYS || 7) * 24 * 60 * 60 * 1000,
 };
 exports.login = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const result = await authService_1.authService.login(req.body, (0, auditContext_1.auditContext)(req));
-    res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+    const { accessToken, refreshToken, user, company } = await authService_1.authService.login(req.body, (0, auditContext_1.auditContext)(req));
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
     res.status(200).json({
         success: true,
-        data: { accessToken: result.accessToken, user: result.user },
+        data: { accessToken, user, company },
     });
 });
 exports.refresh = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
@@ -58,9 +59,24 @@ exports.me = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     res.status(200).json({ success: true, data: user });
 });
 exports.changeMyPassword = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    await userService_1.userService.changeOwnPassword(req.user.id, req.body);
+    await userService_1.userService.changeOwnPassword((0, auditContext_1.auditContext)(req), req.body);
     res
         .status(200)
         .json({ success: true, message: "Password updated successfully" });
+});
+// POST /auth/switch-company  { companyId }
+exports.switchCompany = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
+    const parsed = companyDto_1.switchCompanySchema.safeParse(req.body);
+    if (!parsed.success)
+        throw new apiError_1.ApiError(400, "A valid companyId is required");
+    const raw = req.cookies?.[REFRESH_COOKIE_NAME];
+    if (!raw)
+        throw new apiError_1.ApiError(401, "Please sign in again");
+    const result = await authService_1.authService.switchCompany(raw, parsed.data.companyId, (0, auditContext_1.auditContext)(req));
+    res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+    res.status(200).json({
+        success: true,
+        data: { accessToken: result.accessToken, company: result.company },
+    });
 });
 //# sourceMappingURL=auth.controller.js.map

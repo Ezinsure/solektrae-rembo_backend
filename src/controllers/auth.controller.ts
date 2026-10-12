@@ -4,6 +4,7 @@ import { userService } from "../services/userService";
 import { asyncHandler } from "../utils/asyncHandle";
 import { ApiError } from "../utils/apiError";
 import { auditContext } from "../utils/auditContext";
+import { switchCompanySchema } from "../dtos/company/companyDto";
 
 const REFRESH_COOKIE_NAME = "refreshToken";
 
@@ -19,12 +20,15 @@ const refreshCookieOptions = {
 };
 
 export const login = asyncHandler(async (req, res: Response) => {
-  const result = await authService.login(req.body, auditContext(req));
+  const { accessToken, refreshToken, user, company } = await authService.login(
+    req.body,
+    auditContext(req),
+  );
 
-  res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+  res.cookie(REFRESH_COOKIE_NAME, refreshToken, refreshCookieOptions);
   res.status(200).json({
     success: true,
-    data: { accessToken: result.accessToken, user: result.user },
+    data: { accessToken, user, company },
   });
 });
 
@@ -65,8 +69,29 @@ export const me = asyncHandler(async (req, res: Response) => {
 });
 
 export const changeMyPassword = asyncHandler(async (req, res: Response) => {
-  await userService.changeOwnPassword(req.user!.id, req.body);
+  await userService.changeOwnPassword(auditContext(req), req.body);
   res
     .status(200)
     .json({ success: true, message: "Password updated successfully" });
+});
+
+// POST /auth/switch-company  { companyId }
+export const switchCompany = asyncHandler(async (req, res: Response) => {
+  const parsed = switchCompanySchema.safeParse(req.body);
+  if (!parsed.success) throw new ApiError(400, "A valid companyId is required");
+
+  const raw = req.cookies?.[REFRESH_COOKIE_NAME];
+  if (!raw) throw new ApiError(401, "Please sign in again");
+
+  const result = await authService.switchCompany(
+    raw,
+    parsed.data.companyId,
+    auditContext(req),
+  );
+
+  res.cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions);
+  res.status(200).json({
+    success: true,
+    data: { accessToken: result.accessToken, company: result.company },
+  });
 });

@@ -25,7 +25,7 @@ export class RefreshToken {
   @Column({ type: "varchar" })
   tokenHash: string;
 
-  @Column({ type: "timestamptz"})
+  @Column({ type: "timestamptz" })
   expiresAt: Date;
 
   @Column({ type: "timestamptz", nullable: true })
@@ -39,4 +39,7 @@ export class RefreshToken {
 
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
+
+  @Column({ type: "uuid", nullable: true })
+  companyId: string | null;
 }

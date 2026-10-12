@@ -5,6 +5,8 @@ import ServiceRoutes from "./services/ServiceRoutes";
 import CustomeRoutes from "./customers/CustomerRoute";
 import AuthRouter from "./auth/AuthRoutes";
 import LogsRoutes from "./logs/activityLogRouter";
+import CompanyRoutes from "./company/CompanyRoutes";
+import RolesRoutes from "./roles/rolesRoutes";
 
 const routes = Router();
 
@@ -14,5 +16,7 @@ routes.use("/users", UserRouter);
 routes.use("/services", ServiceRoutes);
 routes.use("/customers", CustomeRoutes);
 routes.use("/logs", LogsRoutes);
+routes.use("/companies", CompanyRoutes);
+routes.use("/roles", RolesRoutes);
 
 export default routes;

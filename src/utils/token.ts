@@ -6,7 +6,16 @@ export interface AccessTokenPayload {
   id: string;
   email: string;
   role: UserRole;
+  names: string;
+  companyId: any;
 }
+
+export type VerifiedAccessToken = Omit<AccessTokenPayload, "names" | "companyId"> & {
+  names?: string;
+  companyId?: string;
+  iat?: number;         
+  exp?: number;    
+};
 
 type ExpiresIn = SignOptions["expiresIn"];
 
@@ -25,8 +34,8 @@ export function signAccessToken(payload: AccessTokenPayload): string {
   return jwt.sign(payload, ACCESS_SECRET, { expiresIn: ACCESS_EXPIRES_IN });
 }
 
-export function verifyAccessToken(token: string): AccessTokenPayload {
-  return jwt.verify(token, ACCESS_SECRET) as AccessTokenPayload;
+export function verifyAccessToken(token: string): VerifiedAccessToken {
+  return jwt.verify(token, ACCESS_SECRET) as VerifiedAccessToken;
 }
 
 export function generateRefreshToken(): {

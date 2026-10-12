@@ -2,10 +2,12 @@ import {
   IsBoolean,
   IsEmail,
   IsEnum,
+  IsIn,
   IsInt,
   IsNotEmpty,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   Max,
   MaxLength,
@@ -14,6 +16,7 @@ import {
 } from "class-validator";
 import { User, UserRole } from "../../entities/User";
 import { Type } from "class-transformer";
+import { CompanyMember } from "../../entities/CompanyMember";
 
 export class CreateUserDto {
   @IsString()
@@ -32,9 +35,6 @@ export class CreateUserDto {
   })
   password: string;
 
-  @IsEnum(UserRole)
-  role: UserRole;
-
   @IsString()
   @MaxLength(20)
   phoneNumber: string;
@@ -42,6 +42,14 @@ export class CreateUserDto {
   @IsOptional()
   @IsString()
   profileImage?: string;
+
+  @IsOptional()
+  @IsUUID()
+  roleId?: string;
+
+  @IsOptional()
+  @IsIn([UserRole.ADMIN, UserRole.HR, UserRole.STAFF, UserRole.USER])
+  role?: UserRole;
 }
 
 // update user dto
@@ -58,6 +66,10 @@ export class UpdateUserDto {
   @IsOptional()
   @IsEnum(UserRole)
   role?: UserRole;
+
+  @IsOptional()
+  @IsUUID()
+  roleId?: string;
 
   @IsOptional()
   @IsString()
@@ -88,6 +100,10 @@ export class UserQueryDto {
   isActive?: boolean;
 
   @IsOptional()
+  @IsUUID()
+  roleId?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -102,14 +118,17 @@ export class UserQueryDto {
 }
 
 type AuditUser = { id: string; names: string } | null;
+
 export class UserResponseDto {
   id: string;
   names: string;
   email: string;
-  role: UserRole;
+  role: UserRole;           
+  roleId: string | null;    
+  roleName: string | null;  
   phoneNumber: string;
   profileImage: string | null;
-  isActive: boolean;
+  isActive: boolean;   
   mustChangePassword: boolean;
   createdAt: Date;
   createdBy: AuditUser;
@@ -118,15 +137,18 @@ export class UserResponseDto {
   deletedAt: Date | null;
   deletedBy: AuditUser;
 
-  static fromEntity(user: User): UserResponseDto {
+  // member is optional: without it (e.g. GET /auth/me) you get the plain profile
+  static fromEntity(user: User, member?: CompanyMember | null): UserResponseDto {
     const dto = new UserResponseDto();
     dto.id = user.id;
     dto.names = user.names;
     dto.email = user.email;
-    dto.role = user.role;
+    dto.role = member?.role ?? user.role;
+    dto.roleId = member?.roleId ?? null;
+    dto.roleName = member?.assignedRole?.name ?? null;
     dto.phoneNumber = user.phoneNumber;
     dto.profileImage = user.profileImage;
-    dto.isActive = user.isActive;
+    dto.isActive = member ? member.isActive && user.isActive : user.isActive;
     dto.mustChangePassword = user.mustChangePassword;
     dto.createdAt = user.createdAt;
     dto.createdBy = UserResponseDto.toAuditUser(user.createdBy);
@@ -136,8 +158,9 @@ export class UserResponseDto {
     dto.deletedBy = UserResponseDto.toAuditUser(user.deletedBy);
     return dto;
   }
+
   static fromEntities(users: User[]): UserResponseDto[] {
-    return users.map(UserResponseDto.fromEntity);
+    return users.map((u) => UserResponseDto.fromEntity(u));
   }
 
   private static toAuditUser(related?: User | null): AuditUser {
