@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from "typeorm";
 
-export class UpdateSystemRoles1760140000000 implements MigrationInterface {
-  name = "UpdateSystemRoles1760140000000";
+export class UpdateSystemRoles1791675647862 implements MigrationInterface {
+  name = "UpdateSystemRoles1791675647862";
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Companies that have no built-in roles yet get them
