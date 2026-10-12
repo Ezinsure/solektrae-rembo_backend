@@ -1,47 +1,28 @@
 import { Router } from "express";
 import {
   createService,
+  deleteService,
+  getService,
+  getServiceFields,
   getServices,
-  getServiceById,
+  reorderServices,
   updateService,
 } from "../../controllers/service.controller";
 import { authenticate } from "../../middleware/authMiddleware";
 import { authorize } from "../../middleware/roleMiddleware";
-import { validateDto } from "../../middleware/validateDto";
-import {
-  CreateServiceDto,
-  UpdateServiceDto,
-} from "../../dtos/services/servicedto";
 import { UserRole } from "../../entities/User";
 
 const ServiceRoutes = Router();
 
-ServiceRoutes.get(
-  "/",
-  //  authenticate,
-  getServices,
-);
+const MANAGE = [UserRole.ADMIN, UserRole.DEV, UserRole.HR];
 
-ServiceRoutes.get("/:id", getServiceById);
-
-ServiceRoutes.post(
-  "/",
-  authenticate,
-  validateDto(CreateServiceDto),
-  createService,
-);
-ServiceRoutes.patch(
-  "/:id",
-  authenticate,
-  //   authorize(UserRole.ADMIN),
-  validateDto(UpdateServiceDto),
-  updateService,
-);
-// ServiceRoutes.delete(
-//   "/:id",
-//   authenticate,
-//    authorize(UserRole.ADMIN),
-//   deleteService,
-// );
+ServiceRoutes.use(authenticate);
+ServiceRoutes.get("/fields", getServiceFields);               
+ServiceRoutes.get("/", getServices);                         
+ServiceRoutes.patch("/reorder", authorize(...MANAGE), reorderServices);
+ServiceRoutes.get("/:id", getService);
+ServiceRoutes.post("/", authorize(...MANAGE), createService);
+ServiceRoutes.patch("/:id", authorize(...MANAGE), updateService);
+ServiceRoutes.delete("/:id", authorize(...MANAGE), deleteService);
 
 export default ServiceRoutes;

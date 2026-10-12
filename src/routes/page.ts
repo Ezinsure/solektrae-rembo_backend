@@ -7,9 +7,11 @@ import AuthRouter from "./auth/AuthRoutes";
 import LogsRoutes from "./logs/activityLogRouter";
 import CompanyRoutes from "./company/CompanyRoutes";
 import RolesRoutes from "./roles/rolesRoutes";
+import PublicRoutes from "./publicRoutes";
 
 const routes = Router();
 
+routes.use("/public", PublicRoutes); 
 routes.use("/admin", BoostrapRouter);
 routes.use("/auth", AuthRouter);
 routes.use("/users", UserRouter);
