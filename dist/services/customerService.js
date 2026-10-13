@@ -46,8 +46,12 @@ class CustomerService {
             .createQueryBuilder("c")
             .where("c.companyId = :companyId", { companyId: company.id })
             .andWhere("c.serviceId = :serviceId", { serviceId: service.id })
-            .andWhere("LOWER(TRIM(c.service)) = LOWER(TRIM(:serviceName))", { serviceName })
-            .andWhere("LOWER(TRIM(c.names)) = LOWER(TRIM(:names))", { names: dto.names })
+            .andWhere("LOWER(TRIM(c.service)) = LOWER(TRIM(:serviceName))", {
+            serviceName,
+        })
+            .andWhere("LOWER(TRIM(c.names)) = LOWER(TRIM(:names))", {
+            names: dto.names,
+        })
             .andWhere("LOWER(c.email) = LOWER(:email)", { email: dto.email })
             .andWhere("c.phoneNumber = :phone", { phone: dto.phoneNumber })
             .andWhere("c.status = :pending", { pending: Customer_1.CustomerStatus.PENDING })
@@ -101,6 +105,7 @@ class CustomerService {
             "Phone",
             "Service",
             "Status",
+            "Note",
             ...serviceFields_1.FIELD_CATALOG.map((f) => f.label.en),
             "Updated by",
         ];
@@ -111,6 +116,7 @@ class CustomerService {
             c.phoneNumber,
             c.service,
             STATUS_LABELS[c.status] ?? c.status,
+            c.statusNote ?? "",
             ...serviceFields_1.FIELD_CATALOG.map((f) => c[f.key] ?? ""),
             c.updatedBy?.names ?? "", // who changed the status (empty while pending)
         ]);
@@ -146,16 +152,28 @@ class CustomerService {
         return this.findById(companyId, id);
     }
     // update status
-    async updateStatus(companyId, id, status, ctx) {
+    async updateStatus(companyId, id, status, note, ctx) {
         if (status === Customer_1.CustomerStatus.PENDING) {
             throw new apiError_1.ApiError(400, "A customer can't be set back to pending");
         }
+        const reason = note?.trim() || null;
         const customer = await this.findEntity(companyId, id);
-        if (customer.status === status)
+        if (customer.status === status && customer.statusNote === reason) {
             return this.findById(companyId, id);
+        }
         const from = customer.status;
         customer.status = status;
+        customer.statusNote = reason;
         customer.updatedBy = this.actor(ctx);
+        const changes = [];
+        if (from !== status)
+            changes.push({
+                field: "Status",
+                from: statusLabel(from),
+                to: statusLabel(status),
+            });
+        if (reason)
+            changes.push({ field: "Reason", from: null, to: reason });
         await database_1.AppDataSource.transaction(async (manager) => {
             await manager.save(customer);
             await activityLog_1.activityLogService.log(ctx, {
@@ -163,13 +181,7 @@ class CustomerService {
                 entity: ActivityLog_1.LogEntity.CUSTOMER,
                 entityId: id,
                 summary: `Marked ${customer.names} as ${statusLabel(status).toLowerCase()}`,
-                changes: [
-                    {
-                        field: "Status",
-                        from: statusLabel(from),
-                        to: statusLabel(status),
-                    },
-                ],
+                changes,
             }, manager);
         });
         return this.findById(companyId, id);

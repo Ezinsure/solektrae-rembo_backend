@@ -41,8 +41,8 @@ exports.updateCustomer = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
         .json({ success: true, message: "Customer updated", data: customer });
 });
 exports.updateCustomerStatus = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const { status } = customerdto_1.customerStatusSchema.parse(req.body);
-    const customer = await customerService_1.customerService.updateStatus((0, auditContext_1.requireCompanyId)(req), customerdto_1.uuidParam.parse(req.params.id), status, (0, auditContext_1.auditContext)(req));
+    const { status, note } = customerdto_1.customerStatusSchema.parse(req.body);
+    const customer = await customerService_1.customerService.updateStatus((0, auditContext_1.requireCompanyId)(req), customerdto_1.uuidParam.parse(req.params.id), status, note, (0, auditContext_1.auditContext)(req));
     res
         .status(200)
         .json({ success: true, message: "Status updated", data: customer });

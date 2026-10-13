@@ -55,7 +55,7 @@ exports.logoutAll = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
     res.status(204).send();
 });
 exports.me = (0, asyncHandle_1.asyncHandler)(async (req, res) => {
-    const user = await userService_1.userService.findById(req.user.id);
+    const user = await userService_1.userService.findById(req.user.id, req.user?.companyId);
     res.status(200).json({ success: true, data: user });
 });
 exports.changeMyPassword = (0, asyncHandle_1.asyncHandler)(async (req, res) => {

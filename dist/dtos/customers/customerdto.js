@@ -45,6 +45,7 @@ exports.customerStatusSchema = zod_1.z.object({
         .refine((s) => s !== Customer_1.CustomerStatus.PENDING, {
         message: "A customer can't be set back to pending",
     }),
+    note: zod_1.z.string().trim().optional(),
 });
 exports.uuidParam = zod_1.z.string().uuid("Invalid id");
 exports.slugParam = zod_1.z.string().trim().min(1).max(80);
