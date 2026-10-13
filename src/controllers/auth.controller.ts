@@ -64,7 +64,7 @@ export const logoutAll = asyncHandler(async (req, res: Response) => {
 });
 
 export const me = asyncHandler(async (req, res: Response) => {
-  const user = await userService.findById(req.user!.id);
+  const user = await userService.findById(req.user!.id, req.user?.companyId);
   res.status(200).json({ success: true, data: user });
 });
 

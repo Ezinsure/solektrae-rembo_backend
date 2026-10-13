@@ -51,6 +51,7 @@ export const customerStatusSchema = z.object({
     .refine((s) => s !== CustomerStatus.PENDING, {
       message: "A customer can't be set back to pending",
     }),
+  note: z.string().trim().optional(),
 });
 
 export const uuidParam = z.string().uuid("Invalid id");

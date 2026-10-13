@@ -47,25 +47,32 @@ export class CustomerService {
     const service = await this.findService(company.id, dto.serviceId, true);
     // Same person, same service, still pending, in the last 10 minutes → don't create a second one
     // Only blocks an exact repeat (double-click / resubmit within 10 minutes)
-const serviceName = service.allowCustomName
-  ? (dto.customServiceName ?? "").trim()
-  : service.name;
+    const serviceName = service.allowCustomName
+      ? (dto.customServiceName ?? "").trim()
+      : service.name;
 
-const recent = await this.repo
-  .createQueryBuilder("c")
-  .where("c.companyId = :companyId", { companyId: company.id })
-  .andWhere("c.serviceId = :serviceId", { serviceId: service.id })
-  .andWhere("LOWER(TRIM(c.service)) = LOWER(TRIM(:serviceName))", { serviceName })
-  .andWhere("LOWER(TRIM(c.names)) = LOWER(TRIM(:names))", { names: dto.names })
-  .andWhere("LOWER(c.email) = LOWER(:email)", { email: dto.email })
-  .andWhere("c.phoneNumber = :phone", { phone: dto.phoneNumber })
-  .andWhere("c.status = :pending", { pending: CustomerStatus.PENDING })
-  .andWhere("c.createdAt > NOW() - INTERVAL '10 minutes'")
-  .getOne();
+    const recent = await this.repo
+      .createQueryBuilder("c")
+      .where("c.companyId = :companyId", { companyId: company.id })
+      .andWhere("c.serviceId = :serviceId", { serviceId: service.id })
+      .andWhere("LOWER(TRIM(c.service)) = LOWER(TRIM(:serviceName))", {
+        serviceName,
+      })
+      .andWhere("LOWER(TRIM(c.names)) = LOWER(TRIM(:names))", {
+        names: dto.names,
+      })
+      .andWhere("LOWER(c.email) = LOWER(:email)", { email: dto.email })
+      .andWhere("c.phoneNumber = :phone", { phone: dto.phoneNumber })
+      .andWhere("c.status = :pending", { pending: CustomerStatus.PENDING })
+      .andWhere("c.createdAt > NOW() - INTERVAL '10 minutes'")
+      .getOne();
 
-if (recent) {
-  throw new ApiError(409, "You already applied for this service. We'll contact you soon.");
-}
+    if (recent) {
+      throw new ApiError(
+        409,
+        "You already applied for this service. We'll contact you soon.",
+      );
+    }
 
     const customer = this.repo.create({
       companyId: company.id,
@@ -116,6 +123,7 @@ if (recent) {
       "Phone",
       "Service",
       "Status",
+      "Note",
       ...FIELD_CATALOG.map((f) => f.label.en),
       "Updated by",
     ];
@@ -127,6 +135,7 @@ if (recent) {
       c.phoneNumber,
       c.service,
       STATUS_LABELS[c.status] ?? c.status,
+      c.statusNote ?? "",
       ...FIELD_CATALOG.map((f) => c[f.key] ?? ""),
       c.updatedBy?.names ?? "", // who changed the status (empty while pending)
     ]);
@@ -176,18 +185,31 @@ if (recent) {
     companyId: string,
     id: string,
     status: CustomerStatus,
+    note: string | undefined,
     ctx: AuditContext,
   ) {
     if (status === CustomerStatus.PENDING) {
       throw new ApiError(400, "A customer can't be set back to pending");
     }
-
+    const reason = note?.trim() || null;
     const customer = await this.findEntity(companyId, id);
-    if (customer.status === status) return this.findById(companyId, id);
+    if (customer.status === status && customer.statusNote === reason) {
+      return this.findById(companyId, id);
+    }
 
     const from = customer.status;
     customer.status = status;
+    customer.statusNote = reason;
     customer.updatedBy = this.actor(ctx);
+
+    const changes: any[] = [];
+    if (from !== status)
+      changes.push({
+        field: "Status",
+        from: statusLabel(from),
+        to: statusLabel(status),
+      });
+    if (reason) changes.push({ field: "Reason", from: null, to: reason });
 
     await AppDataSource.transaction(async (manager) => {
       await manager.save(customer);
@@ -198,13 +220,7 @@ if (recent) {
           entity: LogEntity.CUSTOMER,
           entityId: id,
           summary: `Marked ${customer.names} as ${statusLabel(status).toLowerCase()}`,
-          changes: [
-            {
-              field: "Status",
-              from: statusLabel(from),
-              to: statusLabel(status),
-            },
-          ],
+          changes,
         },
         manager,
       );

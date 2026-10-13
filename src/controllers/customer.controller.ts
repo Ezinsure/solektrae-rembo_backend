@@ -73,11 +73,12 @@ export const updateCustomer = asyncHandler(async (req, res: Response) => {
 });
 
 export const updateCustomerStatus = asyncHandler(async (req, res: Response) => {
-  const { status } = customerStatusSchema.parse(req.body);
+  const { status, note } = customerStatusSchema.parse(req.body);
   const customer = await customerService.updateStatus(
     requireCompanyId(req),
     uuidParam.parse(req.params.id),
     status,
+    note,
     auditContext(req),
   );
   res

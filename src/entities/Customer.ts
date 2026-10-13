@@ -94,6 +94,9 @@ export class Customer {
   })
   status: CustomerStatus;
 
+  @Column({ type: "text", nullable: true })
+  statusNote: string | null;
+
   @CreateDateColumn({ type: "timestamptz" })
   createdAt: Date;
 
