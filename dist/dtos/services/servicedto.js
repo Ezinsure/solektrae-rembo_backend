@@ -1,64 +1,53 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
-    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
-    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
-    return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
-    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.UpdateServiceDto = exports.CreateServiceDto = void 0;
-const class_validator_1 = require("class-validator");
-class CreateServiceDto {
-    name;
-    descr;
-    isOther;
-}
-exports.CreateServiceDto = CreateServiceDto;
-__decorate([
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MaxLength)(100),
-    __metadata("design:type", String)
-], CreateServiceDto.prototype, "name", void 0);
-__decorate([
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], CreateServiceDto.prototype, "descr", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], CreateServiceDto.prototype, "isOther", void 0);
-class UpdateServiceDto {
-    name;
-    descr;
-    isOther;
-    isActive;
-}
-exports.UpdateServiceDto = UpdateServiceDto;
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    (0, class_validator_1.IsNotEmpty)(),
-    (0, class_validator_1.MaxLength)(100),
-    __metadata("design:type", String)
-], UpdateServiceDto.prototype, "name", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsString)(),
-    __metadata("design:type", String)
-], UpdateServiceDto.prototype, "descr", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], UpdateServiceDto.prototype, "isOther", void 0);
-__decorate([
-    (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsBoolean)(),
-    __metadata("design:type", Boolean)
-], UpdateServiceDto.prototype, "isActive", void 0);
+exports.slugParam = exports.uuidParam = exports.serviceListQuerySchema = exports.reorderServicesSchema = exports.updateServiceSchema = exports.createServiceSchema = void 0;
+const zod_1 = require("zod");
+const serviceFields_1 = require("../../constants/serviceFields");
+const fieldSchema = zod_1.z
+    .object({
+    key: zod_1.z.enum(serviceFields_1.FIELD_KEYS),
+    required: zod_1.z.boolean(),
+})
+    .strict();
+const fieldsSchema = zod_1.z
+    .array(fieldSchema)
+    .max(serviceFields_1.FIELD_KEYS.length)
+    .refine((list) => new Set(list.map((f) => f.key)).size === list.length, {
+    message: "Each field can only be added once",
+});
+const tagsSchema = zod_1.z
+    .array(zod_1.z.string().trim().min(1).max(30))
+    .max(20)
+    .transform((tags) => [...new Set(tags)])
+    .optional();
+exports.createServiceSchema = zod_1.z
+    .object({
+    name: zod_1.z.string().trim().min(2, "Name is too short").max(120),
+    description: zod_1.z.string().trim().max(1000).nullable().optional(),
+    tags: tagsSchema.optional(),
+    active: zod_1.z.boolean().optional(),
+    allowCustomName: zod_1.z.boolean().optional(),
+    fields: fieldsSchema.optional(),
+})
+    .strict();
+exports.updateServiceSchema = zod_1.z
+    .object({
+    name: zod_1.z.string().trim().min(2, "Name is too short").max(120).optional(),
+    description: zod_1.z.string().trim().max(1000).nullable().optional(),
+    tags: tagsSchema.optional(),
+    active: zod_1.z.boolean().optional(),
+    allowCustomName: zod_1.z.boolean().optional(),
+    fields: fieldsSchema.optional(),
+    sortOrder: zod_1.z.number().int().min(0).max(10000).optional(),
+})
+    .strict();
+exports.reorderServicesSchema = zod_1.z
+    .object({ ids: zod_1.z.array(zod_1.z.string().uuid()).min(1).max(200) })
+    .strict();
+exports.serviceListQuerySchema = zod_1.z.object({
+    includeInactive: zod_1.z.enum(["true", "false"]).optional(),
+    search: zod_1.z.string().trim().max(100).optional(),
+});
+exports.uuidParam = zod_1.z.string().uuid("Invalid id");
+exports.slugParam = zod_1.z.string().trim().min(1).max(80);
 //# sourceMappingURL=servicedto.js.map

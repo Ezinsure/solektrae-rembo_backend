@@ -1,41 +1,57 @@
-import {
-  IsBoolean,
-  IsNotEmpty,
-  IsOptional,
-  IsString,
-  MaxLength,
-} from "class-validator";
+import { z } from "zod";
+import { FIELD_KEYS } from "../../constants/serviceFields";
 
-export class CreateServiceDto {
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name: string;
+const fieldSchema = z
+  .object({
+    key: z.enum(FIELD_KEYS),
+    required: z.boolean(),
+  })
+  .strict();
 
-  @IsString()
-  descr: string;
+const fieldsSchema = z
+  .array(fieldSchema)
+  .max(FIELD_KEYS.length)
+  .refine((list) => new Set(list.map((f) => f.key)).size === list.length, {
+    message: "Each field can only be added once",
+  });
 
-  @IsOptional()
-  @IsBoolean()
-  isOther?: boolean;
-}
+const tagsSchema = z
+  .array(z.string().trim().min(1).max(30))
+  .max(20)
+  .transform((tags) => [...new Set(tags)])
+  .optional();
 
-export class UpdateServiceDto {
-  @IsOptional()
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(100)
-  name?: string;
+export const createServiceSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name is too short").max(120),
+    description: z.string().trim().max(1000).nullable().optional(),
+    tags: tagsSchema.optional(),
+    active: z.boolean().optional(),
+    allowCustomName: z.boolean().optional(),
+    fields: fieldsSchema.optional(),
+  })
+  .strict();
 
-  @IsOptional()
-  @IsString()
-  descr?: string;
+export const updateServiceSchema = z
+  .object({
+    name: z.string().trim().min(2, "Name is too short").max(120).optional(),
+    description: z.string().trim().max(1000).nullable().optional(),
+    tags: tagsSchema.optional(),
+    active: z.boolean().optional(),
+    allowCustomName: z.boolean().optional(),
+    fields: fieldsSchema.optional(),
+    sortOrder: z.number().int().min(0).max(10000).optional(),
+  })
+  .strict();
 
-  @IsOptional()
-  @IsBoolean()
-  isOther?: boolean;
+export const reorderServicesSchema = z
+  .object({ ids: z.array(z.string().uuid()).min(1).max(200) })
+  .strict();
 
-  @IsOptional()
-  @IsBoolean()
-  isActive?: boolean;
-}
+export const serviceListQuerySchema = z.object({
+  includeInactive: z.enum(["true", "false"]).optional(),
+  search: z.string().trim().max(100).optional(),
+});
+
+export const uuidParam = z.string().uuid("Invalid id");
+export const slugParam = z.string().trim().min(1).max(80);
