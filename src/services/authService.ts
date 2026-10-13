@@ -69,7 +69,7 @@ export class AuthService {
     // Open the company the user worked in last
     const membership = await companyService.getDefaultMembership(user.id);
     if (!membership) {
-      throw new ApiError(403, "Your account isn't linked to any active company. Contact an administrator.");
+      throw new ApiError(403, "You are member of this company. Contact an administrator.");
     }
 
     const tokens = await this.issueTokens(user, membership, ctx);
