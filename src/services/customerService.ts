@@ -46,24 +46,26 @@ export class CustomerService {
 
     const service = await this.findService(company.id, dto.serviceId, true);
     // Same person, same service, still pending, in the last 10 minutes → don't create a second one
-    const recent = await this.repo
-      .createQueryBuilder("c")
-      .where("c.companyId = :companyId", { companyId: company.id })
-      .andWhere("c.serviceId = :serviceId", { serviceId: service.id })
-      .andWhere("(LOWER(c.email) = LOWER(:email) OR c.phoneNumber = :phone)", {
-        email: dto.email,
-        phone: dto.phoneNumber,
-      })
-      .andWhere("c.status = :pending", { pending: CustomerStatus.PENDING })
-      .andWhere("c.createdAt > NOW() - INTERVAL '10 minutes'")
-      .getOne();
+    // Only blocks an exact repeat (double-click / resubmit within 10 minutes)
+const serviceName = service.allowCustomName
+  ? (dto.customServiceName ?? "").trim()
+  : service.name;
 
-    if (recent) {
-      throw new ApiError(
-        409,
-        "You already applied for this service. We'll contact you soon.",
-      );
-    }
+const recent = await this.repo
+  .createQueryBuilder("c")
+  .where("c.companyId = :companyId", { companyId: company.id })
+  .andWhere("c.serviceId = :serviceId", { serviceId: service.id })
+  .andWhere("LOWER(TRIM(c.service)) = LOWER(TRIM(:serviceName))", { serviceName })
+  .andWhere("LOWER(TRIM(c.names)) = LOWER(TRIM(:names))", { names: dto.names })
+  .andWhere("LOWER(c.email) = LOWER(:email)", { email: dto.email })
+  .andWhere("c.phoneNumber = :phone", { phone: dto.phoneNumber })
+  .andWhere("c.status = :pending", { pending: CustomerStatus.PENDING })
+  .andWhere("c.createdAt > NOW() - INTERVAL '10 minutes'")
+  .getOne();
+
+if (recent) {
+  throw new ApiError(409, "You already applied for this service. We'll contact you soon.");
+}
 
     const customer = this.repo.create({
       companyId: company.id,
