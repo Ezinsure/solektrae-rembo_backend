@@ -401,6 +401,17 @@ export class CustomerService {
       );
     }
 
+    if (f.serviceId)
+      qb.andWhere("customer.serviceId = :serviceId", {
+        serviceId: f.serviceId,
+      });
+
+    // Only customers whose status this user changed
+    if (f.updatedById)
+      qb.andWhere("updatedBy.id = :updatedById", {
+        updatedById: f.updatedById,
+      });
+
     return qb
       .orderBy("customer.createdAt", "DESC")
       .addOrderBy("customer.id", "DESC");

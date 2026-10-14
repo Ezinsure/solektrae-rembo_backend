@@ -13,13 +13,14 @@ const filters = z.object({
   to: day.optional(),
 });
 
-const validRange = (q: { from?: string; to?: string }) => !q.from || !q.to || q.from <= q.to;
+const validRange = (q: { from?: string; to?: string }) =>
+  !q.from || !q.to || q.from <= q.to;
 const rangeError = { message: "'from' must be before 'to'", path: ["from"] };
 
 export const logQuerySchema = filters
   .extend({
     page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(10000).default(20),
+    limit: z.coerce.number().int().min(1).max(10000).default(25),
   })
   .refine(validRange, rangeError);
 

@@ -14,10 +14,22 @@ const addDays = (day: string, n: number) => {
 const daysBetween = (from: string, to: string) =>
   Math.round((toDate(to).getTime() - toDate(from).getTime()) / 86400000);
 
+export const kigaliToday = () => new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+
+const emptyCounts = (): Record<string, number> =>
+  Object.fromEntries(Object.values(CustomerStatus).map((s) => [s, 0]));
+
+const toCounts = (rows: any[]) => {
+  const counts = emptyCounts();
+  for (const r of rows) counts[r.status] = Number(r.count);
+  return counts;
+};
+
+const sum = (counts: Record<string, number>) => Object.values(counts).reduce((a, b) => a + b, 0);
+
 class DashboardService {
   private repo = AppDataSource.getRepository(Customer);
 
-  // Customers of this company created between two Kigali days (inclusive)
   private inRange(companyId: string, from: string, to: string) {
     return this.repo
       .createQueryBuilder("c")
@@ -26,21 +38,30 @@ class DashboardService {
       .andWhere("c.createdAt < ((CAST(:to AS date) + 1)::timestamp AT TIME ZONE :tz)", { to, tz: TZ });
   }
 
-  async summary(companyId: string, from: string, to: string) {
+  private countByStatus(companyId: string, from: string, to: string) {
+    return this.inRange(companyId, from, to)
+      .select("c.status", "status")
+      .addSelect("COUNT(*)", "count")
+      .groupBy("c.status")
+      .getRawMany();
+  }
+
+  /**
+   * from/to:   the period for the cards, services and staff
+   * trendFrom: where the chart starts (can be earlier than from, e.g. yesterday + today)
+   */
+  async summary(companyId: string, from: string, to: string, trendFrom: string = from) {
+    // Previous period of the same length, right before `from`
     const days = daysBetween(from, to);
     const prevTo = addDays(from, -1);
     const prevFrom = addDays(prevTo, -days);
 
-    const [statusRows, previousTotal, serviceRows, trendRows, staffRows] = await Promise.all([
-      // Count per status
-      this.inRange(companyId, from, to)
-        .select("c.status", "status")
-        .addSelect("COUNT(*)", "count")
-        .groupBy("c.status")
-        .getRawMany(),
+    const [statusRows, prevStatusRows, serviceRows, trendRows, staffRows] = await Promise.all([
+      // Count per status (selected period)
+      this.countByStatus(companyId, from, to),
 
-      // Same-length period just before
-      this.inRange(companyId, prevFrom, prevTo).getCount(),
+      // Count per status (previous period)
+      this.countByStatus(companyId, prevFrom, prevTo),
 
       // Count per service
       this.inRange(companyId, from, to)
@@ -52,8 +73,8 @@ class DashboardService {
         .orderBy("COUNT(*)", "DESC")
         .getRawMany(),
 
-      // Count per Kigali day
-      this.inRange(companyId, from, to)
+      // Count per Kigali day, from trendFrom
+      this.inRange(companyId, trendFrom, to)
         .select(`to_char((c."createdAt" AT TIME ZONE '${TZ}')::date, 'YYYY-MM-DD')`, "day")
         .addSelect("COUNT(*)", "count")
         .groupBy("day")
@@ -76,13 +97,9 @@ class DashboardService {
         .getRawMany(),
     ]);
 
-    const statusCounts: Record<string, number> = Object.fromEntries(
-      Object.values(CustomerStatus).map((s) => [s, 0]),
-    );
-    for (const r of statusRows) statusCounts[r.status] = Number(r.count);
-    const total = Object.values(statusCounts).reduce((a, b) => a + b, 0);
+    const statusCounts = toCounts(statusRows);
+    const previousStatusCounts = toCounts(prevStatusRows);
 
-    // Fold staff rows (one per user + status) into one row per user
     const staffMap = new Map<string, any>();
     for (const r of staffRows) {
       const s = staffMap.get(r.id) ?? {
@@ -90,7 +107,7 @@ class DashboardService {
         name: r.names,
         email: r.email,
         total: 0,
-        counts: Object.fromEntries(Object.values(CustomerStatus).map((st) => [st, 0])),
+        counts: emptyCounts(),
       };
       s.counts[r.status] = Number(r.count);
       s.total += Number(r.count);
@@ -100,14 +117,17 @@ class DashboardService {
     return {
       from,
       to,
-      total,
-      previousTotal,
+      trendFrom,
+      previousFrom: prevFrom,
+      previousTo: prevTo,
+      total: sum(statusCounts),
+      previousTotal: sum(previousStatusCounts),
       statusCounts,
-      services: serviceRows.map((r) => ({ id: r.serviceId, name: r.name, count: Number(r.count) })),
-      trend: trendRows.map((r) => ({ day: r.day, count: Number(r.count) })),
+      previousStatusCounts,
+      services: serviceRows.map((r: any) => ({ id: r.serviceId, name: r.name, count: Number(r.count) })),
+      trend: trendRows.map((r: any) => ({ day: r.day, count: Number(r.count) })),
       staff: [...staffMap.values()].sort((a, b) => b.total - a.total),
     };
   }
 }
-
 export const dashboardService = new DashboardService();
