@@ -1,5 +1,4 @@
 // Each key MUST match a column on the Customer entity.
-// To add a new field: add a column to Customer + one line here.
 export const FIELD_CATALOG = [
   // Family
   { key: "fatherName", group: "family", type: "text",
